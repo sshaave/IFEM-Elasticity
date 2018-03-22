@@ -448,11 +448,13 @@ bool SIMLinElKL::preprocessB ()
 
 bool SIMLinElKL::assembleDiscreteTerms (const IntegrandBase*, const TimeDomain&)
 {
+  double pload[3] = {0.0,0.0,0.0};
   SystemVector* b = myEqSys->getVector();
   for (size_t i = 0; i < myLoads.size() && b; i++)
-    if (!mySam->assembleSystem(*b,&myLoads[i].pload,myLoads[i].inod))
+  {      pload[2] = myLoads[i].pload;
+      if (!mySam->assembleSystem(*b,pload,myLoads[i].inod))
       return false;
-
+  }
   return true;
 }
 
