@@ -20,8 +20,7 @@
 #include "IFEM.h"
 
 
-<<<<<<< HEAD
-=======
+
 KirchhoffLoveShell::KirchhoffLoveShell () : KirchhoffLove(3)
 {
   tracFld = nullptr;
@@ -29,7 +28,7 @@ KirchhoffLoveShell::KirchhoffLoveShell () : KirchhoffLove(3)
 }
 
 
->>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
+
 void KirchhoffLoveShell::printLog () const
 {
   IFEM::cout <<"KirchhoffLoveShell: thickness = "<< thickness
@@ -244,11 +243,7 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
 				  const FiniteElement& fe,
 				  const Vec3& X, const Vec3& normal) const
 {
-<<<<<<< HEAD
-  // TODO (if you want to support Neumann boundary conditions)
-  std::cerr <<" *** KirchhoffLoveShell::evalBou not implemented."<< std::endl;
-  return false;
-=======
+
   if (!eS)
   {
     std::cerr <<" *** KirchhoffLoveShell::evalBou: No load vector."<< std::endl;
@@ -273,7 +268,6 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
       ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
 
   return true;
->>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
 }
 
 
