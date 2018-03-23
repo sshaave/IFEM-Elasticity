@@ -20,6 +20,16 @@
 #include "IFEM.h"
 
 
+<<<<<<< HEAD
+=======
+KirchhoffLoveShell::KirchhoffLoveShell () : KirchhoffLove(3)
+{
+  tracFld = nullptr;
+  fluxFld = nullptr;
+}
+
+
+>>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
 void KirchhoffLoveShell::printLog () const
 {
   IFEM::cout <<"KirchhoffLoveShell: thickness = "<< thickness
@@ -234,9 +244,36 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
 				  const FiniteElement& fe,
 				  const Vec3& X, const Vec3& normal) const
 {
+<<<<<<< HEAD
   // TODO (if you want to support Neumann boundary conditions)
   std::cerr <<" *** KirchhoffLoveShell::evalBou not implemented."<< std::endl;
   return false;
+=======
+  if (!eS)
+  {
+    std::cerr <<" *** KirchhoffLoveShell::evalBou: No load vector."<< std::endl;
+    return false;
+  }
+
+  Vec3 T;
+  if (fluxFld)
+    T = (*fluxFld)(X);
+  else if (tracFld)
+    T = (*tracFld)(X,normal);
+  else
+  {
+    std::cerr <<" *** KirchhoffLoveShell::evalBou: No tractions."<< std::endl;
+    return false;
+  }
+
+  // Integrate the force vector due to in-plane tractions
+  Vector& ES = static_cast<ElmMats&>(elmInt).b[eS-1];
+  for (size_t a = 1; a <= fe.N.size(); a++)
+    for (unsigned short int i = 1; i <= 3; i++)
+      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
+
+  return true;
+>>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
 }
 
 
@@ -325,9 +362,15 @@ std::string KirchhoffLoveShell::getField1Name (size_t i,
 
   char name = 'u'+i;
   if (!prefix)
+<<<<<<< HEAD
     return std::string(name,1);
 
   return prefix + std::string(" ") + std::string(name,1);
+=======
+    return std::string(1,name);
+
+  return prefix + std::string(" ") + std::string(1,name);
+>>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
 }
 
 

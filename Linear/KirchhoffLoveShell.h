@@ -28,13 +28,25 @@ class KirchhoffLoveShell : public KirchhoffLove
 {
 public:
   //! \brief Default constructor.
+<<<<<<< HEAD
   KirchhoffLoveShell() : KirchhoffLove(3) {}
+=======
+  KirchhoffLoveShell();
+>>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
   //! \brief Empty destructor,
   virtual ~KirchhoffLoveShell() {}
 
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
 
+<<<<<<< HEAD
+=======
+  //! \brief Defines the traction field to use in Neumann boundary conditions.
+  void setTraction(TractionFunc* tf) { tracFld = tf; }
+  //! \brief Defines the traction field to use in Neumann boundary conditions.
+  void setTraction(VecFunc* tf) { fluxFld = tf; }
+
+>>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
   using KirchhoffLove::evalInt;
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -85,7 +97,11 @@ public:
 
   //! \brief Returns the number of primary/secondary solution field components.
   //! \param[in] fld which field set to consider (1=primary, 2=secondary)
+<<<<<<< HEAD
   virtual size_t getNoFields(int fld = 2) const { return fld < 2 ? 3 : 5; }
+=======
+  virtual size_t getNoFields(int fld = 2) const { return fld < 2 ? 3 : 6; }
+>>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
   //! \brief Returns the name of the primary solution field.
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
@@ -94,6 +110,13 @@ public:
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
   virtual std::string getField2Name(size_t i, const char* prefix) const;
+<<<<<<< HEAD
+=======
+
+protected:
+  TractionFunc* tracFld; //!< Pointer to implicit boundary traction field
+  VecFunc*      fluxFld; //!< Pointer to explicit boundary traction field
+>>>>>>> 8a2d63d2b6c208393af4928fd655926d28980aac
 };
 
 #endif
