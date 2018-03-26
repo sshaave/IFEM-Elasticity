@@ -55,10 +55,11 @@ public:
   void formMassMatrix (Matrix& EM, const Vector& N,
                        const Vec3& X, double detJW) const;
 
-  void formBodyForce (Vector& ES, const Vector& N, size_t iP,
-                      const Vec3& X, double detJW) const;
+  void formBodyForce (Vector& ES, const FiniteElement &fe,
+                      const Vec3& X) const;
 
   bool formBmatrix (Matrix& Bm, Matrix& Bb, const FiniteElement& fe) const;
+
 
   using KirchhoffLove::evalBou;
   //! \brief Evaluates the integrand at a boundary point.

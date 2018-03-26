@@ -57,33 +57,40 @@ bool KirchhoffLoveShell::evalInt (LocalIntegral& elmInt,
     this->evalK(elMat.A[eK-1],fe,X);
 
   if (eS) // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(elMat.b[eS-1],fe.N,fe.iGP,X,fe.detJxW);
+    this->formBodyForce(elMat.b[eS-1],fe,X);
 
   return true;
 }
 
+
 void KirchhoffLoveShell::formMassMatrix (Matrix& EM, const Vector& N,
-                     const Vec3& X, double detJW) const
+                                         const Vec3& X, double detJW) const
 {
-  double rho = material->getMassDensity(X)*thickness;
+  double rhow = material->getMassDensity(X)*thickness*detJW;
+  if (rhow == 0.0) return;
 
-  if (rho != 0.0)
-    EM.outer_product(N,N*rho*detJW,true);
+  for (size_t a = 1; a <= N.size(); a++)
+    for (size_t b = 1; b <= N.size(); b++)
+      for (unsigned short int i = 1; i <= 3; i++)
+        EM(3*(a-1)+i,3*(b-1)+i) += rhow*N(a)*N(b);
 }
 
 
-void KirchhoffLoveShell::formBodyForce (Vector& ES, const Vector& N, size_t iP,
-                    const Vec3& X, double detJW) const
+void KirchhoffLoveShell::formBodyForce (Vector& ES, const FiniteElement& fe,
+                                        const Vec3& X) const
 {
+
   double p = this->getPressure(X);
-  if (p != 0.0)
-  {
-    ES.add(N,p*detJW);
-    // Store pressure value for visualization
-    if (iP < presVal.size())
-      presVal[iP] = std::make_pair(X,Vec3(0.0,0.0,p));
-  }
+  if (p == 0.0) return;
+
+  for (size_t a = 1; a <= fe.N.size(); a++)
+    ES(3*a) += p*fe.detJxW*fe.N(a);      // Denne er fortsatt feil
+  size_t stw = fe.getNoBasis();
+  // Store pressure value for visualization
+  if (fe.iGP < presVal.size())
+    presVal[fe.iGP] = std::make_pair(X,Vec3(0.0,0.0,p));
 }
+
 
 bool KirchhoffLoveShell::evalK (Matrix& EK, const FiniteElement& fe,
                                 const Vec3& X) const
@@ -188,8 +195,6 @@ bool KirchhoffLoveShell::formBmatrix (Matrix& Bm, Matrix& Bb, const FiniteElemen
 
     // Strain
     int ndof = fe.N.size()*3;
-    Matrix dE_ca(3,ndof); // dE_ca = epsilon cartesian coordinates
-    Matrix dK_ca(3,ndof); // dK_ca = kappa cartesian coordinates
     Matrix dE_cu(3,ndof); // dE_cu = epsilon curvelinear coordinate system
     Matrix dK_cu(3,ndof); // dK_cu = kappa curvelinear
 
@@ -215,13 +220,7 @@ bool KirchhoffLoveShell::formBmatrix (Matrix& Bm, Matrix& Bb, const FiniteElemen
 
         double g3dg3lg3_3 = g3*dg3/(lg3*lg3*lg3); // eq 5.31 last part
 
-        Vec3 dn; // eq 5.31 dn = a3,rs (kanskje)
-        for (int kaffi = 1; kaffi <= 3; kaffi ++)
-          {
-             dn(kaffi) = dg3(kaffi)/lg3 - g3(kaffi)*g3dg3lg3_3;
-          }
-
-
+        Vec3 dn = dg3/lg3 - g3*g3dg3lg3_3; // eq 5.31 dn = a3,rs (kanskje)
 
         dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn);
         dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn);
@@ -260,9 +259,12 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
 
   // Integrate the force vector due to in-plane tractions
   Vector& ES = static_cast<ElmMats&>(elmInt).b[eS-1];
-  for (size_t a = 1; a <= fe.N.size(); a++)
-    for (unsigned short int i = 1; i <= 3; i++)
+  for (size_t a = 1; a <= fe.N.size(); a++) {
+    for (unsigned short int i = 1; i <= 3; i++) {
       ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
+      ES(3*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
+    }
+  }
 
   return true;
 }

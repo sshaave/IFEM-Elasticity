@@ -40,7 +40,8 @@
   <!-- General - point result output !-->
   <postprocessing>
     <resultpoints>
-      <point patch="1" u="0.5" v="0.5"/>
+      <point patch="1" u="0.0" v="0.5"/>
+      <point patch="1" u="1.0" v="0.5"/>
     </resultpoints>
   </postprocessing>
 
