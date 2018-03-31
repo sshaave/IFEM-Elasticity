@@ -53,6 +53,7 @@
   \arg -nw \a nw : Number of visualization points per knot-span in w-direction
   \arg -hdf5 : Write primary and projected secondary solution to HDF5 file
   \arg -dumpASC : Dump model and solution to ASCII files for external processing
+  \arg -outPrec \a nDigit : Number of digits in solution component printout
   \arg -ignore \a p1, \a p2, ... : Ignore these patches in the analysis
   \arg -eig \a iop : Eigenproblem solver to use (1...6)
   \arg -nev \a nev : Number of eigenvalues to compute
@@ -67,6 +68,7 @@
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -2Daxisymm : Use two-parametric simulation driver (axi-symmetric solid)
   \arg -2DKL : Use two-parametric simulation driver for Kirchhoff-Love plate
+  \arg -2DKLshel : Use two-parametric simulation driver for Kirchhoff-Love shell
   \arg -1D : Use one-parametric simulation driver for beam with rotational DOFs
   \arg -1DKL : Use one-parametric simulation driver for C1-continous beam
   \arg -1DC1 : Use one-parametric simulation driver for C1-continous cable
@@ -88,6 +90,7 @@ int main (int argc, char** argv)
   std::vector<int> ignoredPatches;
   size_t adaptor = 0;
   int  i, iop = 0;
+  int  outPrec = 6;
   bool checkRHS = false;
   bool vizRHS = false;
   bool fixDup = false;
@@ -117,6 +120,8 @@ int main (int argc, char** argv)
       while (i < argc-1 && argv[i+1][0] != '-')
         topSets.push_back(argv[++i]);
     }
+    else if (!strcmp(argv[i],"-outPrec") && i < argc-1)
+      outPrec = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-ignore"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
         utl::parseIntegers(ignoredPatches,argv[++i]);
@@ -146,7 +151,7 @@ int main (int argc, char** argv)
     {
       args.dim = 2;
       isC1 = KLp = true;
-      shell = !strncmp(argv[i]+5,"shell",5);
+      shell = !strncmp(argv[i]+5,"shel",4);
     }
     else if (!strncmp(argv[i],"-2Dpstra",8))
     {
@@ -183,15 +188,15 @@ int main (int argc, char** argv)
   if (!infile)
   {
     std::cout <<"usage: "<< argv[0]
-              <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
-              <<"       [-lag|-spec|-LR] [-1D[C1|KL]|-2D[pstrain|axisymm|KL]]"
+              <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
+              <<" [-lag|-spec|-LR] [-1D[C1|KL]|-2D[pstrain|axisymm|KL[shel]]]"
               <<" [-nGauss <n>]\n       [-hdf5] [-vtf <format> [-nviz <nviz>]"
               <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]]\n       [-adap[<i>]]"
               <<" [-DGL2] [-CGL2] [-SCR] [-VDSA] [-LSQ] [-QUASI]\n      "
               <<" [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>] [-free]]"
               <<"\n       [-ignore <p1> <p2> ...] [-fixDup]"
               <<" [-checkRHS] [-check] [-dumpASC]\n"
-              <<"       [-dumpMatlab [<setnames>]]\n";
+              <<"       [-dumpMatlab [<setnames>]] [-outPrec <nd>]\n";
     return 0;
   }
 
@@ -213,6 +218,8 @@ int main (int argc, char** argv)
     IFEM::cout <<"\nIgnored patches:";
     for (int ip : ignoredPatches) IFEM::cout <<" "<< ip;
   }
+  if (outPrec != 6)
+    IFEM::cout <<"\nNorm- and component output precision: "<< outPrec;
   IFEM::cout << std::endl;
 
   utl::profiler->stop("Initialization");
@@ -425,9 +432,9 @@ int main (int argc, char** argv)
       IFEM::cout << std::endl;
     }
 
-    model->dumpResults(displ,0.0,IFEM::cout,true,6);
+    model->dumpResults(displ,0.0,IFEM::cout,true,outPrec);
     if (!projs.empty())
-      model->dumpVector(projs.front(),nullptr,IFEM::cout,6);
+      model->dumpVector(projs.front(),nullptr,IFEM::cout,outPrec);
 
     if (model->opt.eig == 0) break;
 
