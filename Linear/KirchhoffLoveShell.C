@@ -84,8 +84,8 @@ void KirchhoffLoveShell::formBodyForce (Vector& ES, const FiniteElement& fe,
   if (p == 0.0) return;
 
   for (size_t a = 1; a <= fe.N.size(); a++)
-    ES(3*a) += p*fe.detJxW*fe.N(a);      
-  
+    ES(3*a) += p*fe.detJxW*fe.N(a);
+
   // Store pressure value for visualization
   if (fe.iGP < presVal.size())
     presVal[fe.iGP] = std::make_pair(X,Vec3(0.0,0.0,p));

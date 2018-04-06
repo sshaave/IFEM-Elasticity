@@ -8,8 +8,8 @@
   <!-- General - geometry definitions !-->
   <geometry>
     <patchfile>firstHemisquarter.g2</patchfile>
-    <raiseorder patch="1" u="2" v="2"/>
-    <refine patch="1" u="3" v="3"/>
+    <raiseorder patch="1" u="3" v="3"/>
+    <refine patch="1" u="15" v="15"/>
     <topologysets>
       <set name="fixed" type="edge">
         <item patch="1">1</item>
@@ -42,8 +42,8 @@
   <!-- Problem specific block !-->
   <KirchhoffLove>
     <isotropic E="6.825e7" nu="0.3" rho="0.0" thickness="0.04"/>
-    <pointload patch="1" xi="1.0" eta="0.0" direction="3">2.0</pointload>
-    <pointload patch="1" xi="1.0" eta="1.0" direction="2">-2.0</pointload>
+    <pointload patch="1" xi="1.0" eta="0.0" direction="3">1.0</pointload>
+    <pointload patch="1" xi="1.0" eta="1.0" direction="2">-1.0</pointload>
   </KirchhoffLove>
 
   <!-- General - point result output !-->
