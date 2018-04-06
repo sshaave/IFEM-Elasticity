@@ -9,15 +9,15 @@
 	<geometry>
 		<patchfile>Scordelis_symm.g2</patchfile>
 		<raiseorder patch="1" u ="2" v="3"/>
-    	<refine patch="1" u="3" v="3"/>
+    		<refine patch="1" u="10" v="10"/>
     	<topologysets>
-      		<set name="fixedpoint" type="vertex">
+      			<!--<set name="fixedpoint" type="vertex">
         		<item patch="1">2</item>
-		  	</set>
-		  	<set name="symmU" type="edge">
+		  	</set> !-->
+		  	<set name="symmZY" type="edge">
 		    	<item patch="1">1</item>
 		  	</set>
-		  	<set name="symmV" type="edge">
+		  	<set name="symmXZ" type="edge">
 		    	<item patch="1">4</item>
 			</set>
 		  	<set name="fixedend" type="edge">
@@ -34,13 +34,13 @@
 	<!-- General - boundary conditions !-->
   	<boundaryconditions>
     	<dirichlet set="fixedend" comp="13"/>
-    	<dirichlet set="fixedpoint" comp="2"/>
-    	<dirichlet set="symmU" comp="1"/>
-    	<dirichlet set="symmU" comp="2000"/>
-    	<dirichlet set="symmU" comp="3000"/>
-    	<dirichlet set="symmV" comp="1000"/>
-    	<dirichlet set="symmV" comp="2"/>
-    	<dirichlet set="symmV" comp="3000"/>
+    	<!-- <dirichlet set="fixedpoint" comp="2"/> !-->
+    	<dirichlet set="symmZY" comp="1"/>
+    	<dirichlet set="symmZY" comp="2000"/>
+    	<dirichlet set="symmZY" comp="3000"/>
+    	<dirichlet set="symmXZ" comp="1000"/>
+    	<dirichlet set="symmXZ" comp="2"/>
+    	<dirichlet set="symmXZ" comp="3000"/>
   	</boundaryconditions>
 
   	<!-- Problem specific block !-->
