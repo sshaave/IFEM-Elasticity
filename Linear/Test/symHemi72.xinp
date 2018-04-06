@@ -8,7 +8,7 @@
 	<!-- General - gemoetry definitions !-->
 	<geometry>
 		<patchfile>hemisphere72.g2</patchfile>
-		<raiseorder patch="1" u ="2" v="2"/>
+		<raiseorder patch="1" u ="5" v="5"/>
     		<refine patch="1" u="4" v="4"/>
     	<topologysets>
 		  <!--	<set name="edge1" type="edge">
@@ -23,9 +23,9 @@
 			<set name="symmYZ" type="edge">
 			<item patch="1">4</item>
 			</set>
-			<!-- <set name="punkt" type="vertex">
+			<set name="punkt" type="vertex">
 			<item patch="1">1</item>
-			</set> !-->
+			</set>
 		</topologysets>
 	</geometry>
 
@@ -42,7 +42,7 @@
 	<dirichlet set="symmYZ" comp="1"/>
 	<dirichlet set="symmYZ" comp="2000"/>
 	<dirichlet set="symmYZ" comp="3000"/> 
-	<!-- <dirichlet set="punkt"comp="3"/> !-->
+	<dirichlet set="punkt" comp="3"/>
   	</boundaryconditions>
 
   	<!-- Problem specific block !-->
