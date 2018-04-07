@@ -257,14 +257,10 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
     return false;
   }
 
-  // Integrate the force vector due to in-plane tractions
   Vector& ES = static_cast<ElmMats&>(elmInt).b[eS-1];
-  for (size_t a = 1; a <= fe.N.size(); a++) {
-    for (unsigned short int i = 1; i <= 3; i++) {
-      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
+  for (size_t a = 1; a <= fe.N.size(); a++)
+    for (unsigned short int i = 1; i <= 3; i++)
       ES(3*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
-    }
-  }
 
   return true;
 }
