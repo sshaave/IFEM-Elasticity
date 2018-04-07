@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
-<!-- Scordelis-Lo, 1/4 of the roof, subjected to gravity load.
+<!-- Scordelis-Lo roof (1/4), subjected to gravity load.
 	 Quadratic spline Kirchhoff-Love thin shell elements. !-->
 
 <simulation>
@@ -11,9 +11,6 @@
 		<raiseorder patch="1" u ="2" v="3"/>
     		<refine patch="1" u="10" v="10"/>
     	<topologysets>
-      			<!--<set name="fixedpoint" type="vertex">
-        		<item patch="1">2</item>
-		  	</set> !-->
 		  	<set name="symmZY" type="edge">
 		    	<item patch="1">1</item>
 		  	</set>
@@ -34,7 +31,6 @@
 	<!-- General - boundary conditions !-->
   	<boundaryconditions>
     	<dirichlet set="fixedend" comp="13"/>
-    	<!-- <dirichlet set="fixedpoint" comp="2"/> !-->
     	<dirichlet set="symmZY" comp="1"/>
     	<dirichlet set="symmZY" comp="2000"/>
     	<dirichlet set="symmZY" comp="3000"/>

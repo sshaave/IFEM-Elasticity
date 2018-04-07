@@ -7,9 +7,9 @@
 
   <!-- General - geometry definitions !-->
   <geometry>
-    <patchfile>example2.g2</patchfile>
+    <patchfile>Scordelis.g2</patchfile>
     <raiseorder patch="1" u="2" v="3"/>
-    <refine patch="1" u="3" v="3"/>
+    <refine patch="1" u="10" v="10"/>
     <topologysets>
       <set name="ends" type="edge">
         <item patch="1">3 4</item>
