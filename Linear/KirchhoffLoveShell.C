@@ -1,4 +1,3 @@
-// $Id$
 //==============================================================================
 //!
 //! \file KirchhoffLoveShell.C
@@ -16,6 +15,7 @@
 #include "FiniteElement.h"
 #include "Utilities.h"
 #include "ElmMats.h"
+#include "ElmNorm.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
 
@@ -79,16 +79,26 @@ void KirchhoffLoveShell::formMassMatrix (Matrix& EM, const Vector& N,
 void KirchhoffLoveShell::formBodyForce (Vector& ES, const FiniteElement& fe,
                                         const Vec3& X) const
 {
-
   double p = this->getPressure(X);
   if (p == 0.0) return;
 
   for (size_t a = 1; a <= fe.N.size(); a++)
-    ES(3*a) += p*fe.detJxW*fe.N(a);
+    ES(3*a) += fe.N(a)*p*fe.detJxW;
 
   // Store pressure value for visualization
   if (fe.iGP < presVal.size())
     presVal[fe.iGP] = std::make_pair(X,Vec3(0.0,0.0,p));
+}
+
+
+Vec3 KirchhoffLoveShell::getTraction (const Vec3& X, const Vec3& n) const
+{
+  if (fluxFld)
+    return (*fluxFld)(X);
+  else if (tracFld)
+    return (*tracFld)(X,n);
+  else
+    return Vec3();
 }
 
 
@@ -195,6 +205,8 @@ bool KirchhoffLoveShell::formBmatrix (Matrix& Bm, Matrix& Bb, const FiniteElemen
 
     // Strain
     int ndof = fe.N.size()*3;
+    Matrix dE_ca(3,ndof); // dE_ca = epsilon cartesian coordinates
+    Matrix dK_ca(3,ndof); // dK_ca = kappa cartesian coordinates
     Matrix dE_cu(3,ndof); // dE_cu = epsilon curvelinear coordinate system
     Matrix dK_cu(3,ndof); // dK_cu = kappa curvelinear
 
@@ -221,6 +233,7 @@ bool KirchhoffLoveShell::formBmatrix (Matrix& Bm, Matrix& Bb, const FiniteElemen
         double g3dg3lg3_3 = g3*dg3/(lg3*lg3*lg3); // eq 5.31 last part
 
         Vec3 dn = dg3/lg3 - g3*g3dg3lg3_3; // eq 5.31 dn = a3,rs (kanskje)
+        
 
         dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn);
         dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn);
@@ -245,18 +258,13 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
     std::cerr <<" *** KirchhoffLoveShell::evalBou: No load vector."<< std::endl;
     return false;
   }
-
-  Vec3 T;
-  if (fluxFld)
-    T = (*fluxFld)(X);
-  else if (tracFld)
-    T = (*tracFld)(X,normal);
-  else
+  else if (!fluxFld && !tracFld)
   {
     std::cerr <<" *** KirchhoffLoveShell::evalBou: No tractions."<< std::endl;
     return false;
   }
 
+  Vec3 T = this->getTraction(X,normal);
   Vector& ES = static_cast<ElmMats&>(elmInt).b[eS-1];
   for (size_t a = 1; a <= fe.N.size(); a++)
     for (unsigned short int i = 1; i <= 3; i++)
@@ -284,11 +292,16 @@ bool KirchhoffLoveShell::evalSol (Vector& s,
   }
 
   // Evaluate the stress resultant tensor
-  return this->evalSol(s,eV,fe,X,true);
+  Vector sb;
+  if (!this->evalSol(s,sb,eV,fe,X,true))
+    return false;
+
+  s.insert(s.end(),sb.begin(),sb.end());
+  return true;
 }
 
 
-bool KirchhoffLoveShell::evalSol (Vector& s, const Vector& eV,
+bool KirchhoffLoveShell::evalSol (Vector& sm, Vector& sb, const Vector& eV,
                                   const FiniteElement& fe, const Vec3& X,
                                   bool toLocal) const
 {
@@ -338,8 +351,8 @@ bool KirchhoffLoveShell::evalSol (Vector& s, const Vector& eV,
     m.transform(locSys->getTmat(X));
   }
 
-  s = n;
-  s.insert(s.end(),m.ptr(),m.ptr()+3);
+  sm = n;
+  sb = m;
   return true;
 }
 
@@ -368,4 +381,164 @@ std::string KirchhoffLoveShell::getField2Name (size_t i,
     return s[i];
 
   return prefix + std::string(" ") + s[i];
+}
+
+
+NormBase* KirchhoffLoveShell::getNormIntegrand (AnaSol*) const
+{
+  return new KirchhoffLoveShellNorm(*const_cast<KirchhoffLoveShell*>(this));
+}
+
+
+KirchhoffLoveShellNorm::KirchhoffLoveShellNorm (KirchhoffLoveShell& p)
+  : NormBase(p)
+{
+  nrcmp = myProblem.getNoFields(2);
+}
+
+
+bool KirchhoffLoveShellNorm::evalInt (LocalIntegral& elmInt,
+                                      const FiniteElement& fe,
+                                      const Vec3& X) const
+{
+  KirchhoffLoveShell& problem = static_cast<KirchhoffLoveShell&>(myProblem);
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
+
+  // Evaluate the inverse constitutive matrices at this point
+  Matrix Dm, Db;
+  if (!problem.formDmatrix(Dm,Db,fe,X,true))
+    return false;
+
+  // Evaluate the finite element stress field
+  Vector mh, nh, errm, errn;
+  if (!problem.evalSol(nh,mh,pnorm.vec.front(),fe,X))
+    return false;
+
+  size_t ip = 0;
+
+  // Integrate the energy norm a(u^h,u^h)
+  pnorm[ip++] += (nh.dot(Dm*nh) + mh.dot(Db*mh))*fe.detJxW;
+
+  // Evaluate the body load
+  double p = problem.getPressure(X);
+  // Evaluate the transverse displacement field
+  double w = pnorm.vec.front().dot(fe.N,2,3);
+  // Integrate the external energy (p,u^h)
+  pnorm[ip++] += p*w*fe.detJxW;
+
+  // Integrate the area
+  pnorm[ip++] += fe.detJxW;
+
+#if INT_DEBUG > 3
+  std::cout <<"KirchhoffLovePlateNorm::evalInt("<< fe.iel <<", "<< X <<"):";
+#endif
+
+  for (const Vector& psol : pnorm.psol)
+    if (!psol.empty())
+    {
+      // Evaluate the projected solution
+      Vector nr(nrcmp/2), mr(nrcmp/2);
+      for (unsigned short int j = 0; j < nrcmp; j++)
+	if (j < nr.size())
+          nr[j] = psol.dot(fe.N,j,nrcmp);
+        else
+          mr[j-nr.size()] = psol.dot(fe.N,j,nrcmp);
+
+#if INT_DEBUG > 3
+      std::cout <<"\n\ts^r =");
+      for (double v : nr) std::cout <<" "<< v;
+      for (double v : mr) std::cout <<" "<< v;
+#endif
+
+      // Integrate the energy norm a(u^r,u^r)
+      pnorm[ip++] += (nr.dot(Dm*nr) + mr.dot(Db*mr))*fe.detJxW;
+
+      // Integrate the error in energy norm a(u^r-u^h,u^r-u^h)
+      errn = nr - nh;
+      errm = mr - mh;
+      pnorm[ip++] += (errn.dot(Dm*errn) + errm.dot(Db*errm))*fe.detJxW;
+
+      // Integrate the L2-norms (n^r,n^r) and (m^r,m^r)
+      pnorm[ip++] += nr.dot(nr)*fe.detJxW;
+      pnorm[ip++] += mr.dot(mr)*fe.detJxW;
+      // Integrate the error in L2-norm (m^r-m^h,m^r-m^h)
+      pnorm[ip++] += errn.dot(errn)*fe.detJxW;
+      pnorm[ip++] += errm.dot(errm)*fe.detJxW;
+    }
+
+  if (ip == pnorm.size())
+    return true;
+
+  std::cerr <<" *** KirchhoffLoveShellNorm::evalInt: Internal error, ip="
+            << ip <<" != pnorm.size()="<< pnorm.size() << std::endl;
+  return false;
+}
+
+
+bool KirchhoffLoveShellNorm::evalBou (LocalIntegral& elmInt,
+                                      const FiniteElement& fe,
+                                      const Vec3& X, const Vec3& normal) const
+{
+  KirchhoffLoveShell& problem = static_cast<KirchhoffLoveShell&>(myProblem);
+  if (!problem.haveLoads()) return true;
+
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
+
+  // Evaluate the surface traction
+  Vec3 T = problem.getTraction(X,normal);
+
+  // Evaluate the displacement field
+  Vec3 u;
+  u.x = pnorm.vec.front().dot(fe.N,0,3);
+  u.y = pnorm.vec.front().dot(fe.N,0,3);
+  u.z = pnorm.vec.front().dot(fe.N,0,3);
+
+  // Integrate the external energy
+  pnorm[1] += T*u*fe.detJxW;
+  return true;
+}
+
+
+int KirchhoffLoveShellNorm::getIntegrandType () const
+{
+  return SECOND_DERIVATIVES;
+}
+
+
+size_t KirchhoffLoveShellNorm::getNoFields (int group) const
+{
+  if (group == 0)
+    return this->NormBase::getNoFields();
+  else if (group == 1 || group == -1)
+    return 3;
+  else if (group > 0 || !prjsol[-group-2].empty())
+    return 6;
+  else
+    return 0;
+}
+
+
+std::string KirchhoffLoveShellNorm::getName (size_t i, size_t j,
+                                             const char* prefix) const
+{
+  if (i == 0 || j == 0 || j > 6 || (i == 1 && j > 3))
+    return this->NormBase::getName(i,j,prefix);
+
+  static const char* u[3] = {
+    "a(u^h,u^h)^0.5",
+    "(p,u^h)^0.5",
+    "area"
+  };
+
+  static const char* p[6] = {
+    "a(u^r,u^r)^0.5",
+    "a(e,e)^0.5, e=u^r-u^h",
+    "(n^r,n^r)^0.5",
+    "(m^r,m^r)^0.5",
+    "(e,e)^0.5, e=n^r-n^h",
+    "(e,e)^0.5, e=m^r-m^h",
+  };
+
+  std::string name(i > 1 ? p[j-1] : u[j-1]);
+  return prefix ? prefix + std::string(" ") + name : name;
 }
