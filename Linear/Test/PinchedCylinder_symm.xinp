@@ -7,9 +7,9 @@
 
 	<!-- General - gemoetry definitions !-->
 	<geometry>
-	<patchfile>Pinched-cylinder_symm.g2</patchfile>
-	<raiseorder patch="1" u ="3" v="4"/>
-  <refine patch="1" u="40" v="40"/>
+	<patchfile>PinchedCylinder_symm.g2</patchfile>
+	<raiseorder patch="1" u ="2" v="3"/>
+  <refine patch="1" u="31" v="31"/>
     <topologysets>
 		  <set name="symmYZ" type="edge">
 		    <item patch="1">1</item>
@@ -28,7 +28,7 @@
 
   <!-- General - Gauss quadrature scheme !-->
   <discretization>
-   	<nGauss>5</nGauss>
+   	<nGauss>3</nGauss>
  	</discretization>
 
 	<!-- General - boundary conditions !-->
@@ -48,7 +48,7 @@
   <!-- Problem specific block !-->
   <KirchhoffLove>
     <isotropic E="3.00e6" nu="0.3" thickness="3.0"/>
-		<pointload patch="1" xi="0.0" eta="1.0" direction="3">-0.25<pointload>
+		<pointload patch="1" xi="0.0" eta="1.0" direction="3">-0.25</pointload>
   </KirchhoffLove>
 
 	<!-- General - point result output !-->
