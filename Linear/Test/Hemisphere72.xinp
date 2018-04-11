@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Scordelis-Lo, 1/4 of the roof, subjected to gravity load.
+	 Quadratic spline Kirchhoff-Love thin shell elements. !-->
+
+<simulation>
+
+	<!-- General - gemoetry definitions !-->
+	<geometry>
+		<patchfile>Hemisphere72.g2</patchfile>
+		<raiseorder patch="1" u ="1" v="1"/>
+    		<refine patch="1" u="4" v="4"/>
+    	<topologysets>
+
+			<set name="punkt" type="vertex">
+			<item patch="1">1</item>
+			</set>
+		</topologysets>
+	</geometry>
+
+  	<!-- General - Gauss quadrature scheme !-->
+  	<discretization>
+   		<nGauss>5</nGauss>
+ 	</discretization>
+
+	<!-- General - boundary conditions !-->
+  	<boundaryconditions>
+	<dirichlet set="punkt" comp="3"/>
+  	</boundaryconditions>
+
+  	<!-- Problem specific block !-->
+  	<KirchhoffLove>
+    	<isotropic E="6.825e7" nu="0.3" rho="100" thickness="0.04"/>
+	<pointload patch="1" xi="0.0" eta="0.25" direction="1">2</pointload>
+	<pointload patch="1" xi="0.0" eta="0.5" direction="2">2</pointload>
+	<pointload patch="1" xi="0.0" eta="0.75" direction="1">-2</pointload>
+	<pointload patch="1" xi="0.0" eta="1.0" direction="2">-2</pointload>
+  	</KirchhoffLove>
+
+	<!-- General - point result output !-->
+	<postprocessing>
+		<resultpoints>
+		<point patch="1" u="1.0" v="1.0"/>
+	</resultpoints>
+	</postprocessing>
+
+</simulation>
