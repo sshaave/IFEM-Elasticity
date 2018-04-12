@@ -20,7 +20,10 @@
 
   	<!-- General - Gauss quadrature scheme !-->
   	<discretization>
+<!--
    		<nGauss>5</nGauss>
+-->
+		<nGauss default="1"/>
  	</discretization>
 
 	<!-- General - boundary conditions !-->
