@@ -54,6 +54,7 @@
   \arg -hdf5 : Write primary and projected secondary solution to HDF5 file
   \arg -dumpASC : Dump model and solution to ASCII files for external processing
   \arg -outPrec \a nDigit : Number of digits in solution component printout
+  \arg -ztol \a eps : Zero tolerance for printing of solution components
   \arg -ignore \a p1, \a p2, ... : Ignore these patches in the analysis
   \arg -eig \a iop : Eigenproblem solver to use (1...6)
   \arg -nev \a nev : Number of eigenvalues to compute
@@ -91,6 +92,7 @@ int main (int argc, char** argv)
   size_t adaptor = 0;
   int  i, iop = 0;
   int  outPrec = 6;
+  double zero_tol = -1.0;
   bool checkRHS = false;
   bool vizRHS = false;
   bool fixDup = false;
@@ -122,6 +124,8 @@ int main (int argc, char** argv)
     }
     else if (!strcmp(argv[i],"-outPrec") && i < argc-1)
       outPrec = atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-ztol") && i < argc-1)
+      zero_tol = atof(argv[++i]);
     else if (!strcmp(argv[i],"-ignore"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
         utl::parseIntegers(ignoredPatches,argv[++i]);
@@ -195,8 +199,8 @@ int main (int argc, char** argv)
               <<" [-DGL2] [-CGL2] [-SCR] [-VDSA] [-LSQ] [-QUASI]\n      "
               <<" [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>] [-free]]"
               <<"\n       [-ignore <p1> <p2> ...] [-fixDup]"
-              <<" [-checkRHS] [-check] [-dumpASC]\n"
-              <<"       [-dumpMatlab [<setnames>]] [-outPrec <nd>]\n";
+              <<" [-checkRHS] [-check] [-dumpASC]\n      "
+              <<" [-dumpMatlab [<setnames>]] [-outPrec <nd>] [-ztol <eps>]\n";
     return 0;
   }
 
@@ -220,7 +224,8 @@ int main (int argc, char** argv)
   }
   if (outPrec != 6)
     IFEM::cout <<"\nNorm- and component output precision: "<< outPrec;
-  IFEM::cout << std::endl;
+  IFEM::cout <<"\nSolution component output zero tolerance: "
+             << (zero_tol > 0.0 ? zero_tol : utl::zero_print_tol) << std::endl;
 
   utl::profiler->stop("Initialization");
   utl::profiler->start("Model input");
@@ -434,9 +439,15 @@ int main (int argc, char** argv)
       IFEM::cout.precision(oldPrec);
     }
 
-    model->dumpResults(displ,0.0,IFEM::cout,true,outPrec);
-    if (!projs.empty())
-      model->dumpVector(projs.front(),nullptr,IFEM::cout,outPrec);
+    if (model->hasResultPoints())
+    {
+      double old_tol = utl::zero_print_tol;
+      if (zero_tol > 0.0) utl::zero_print_tol = zero_tol;
+      model->dumpResults(displ,0.0,IFEM::cout,true,outPrec);
+      if (!projs.empty())
+        model->dumpVector(projs.front(),nullptr,IFEM::cout,outPrec);
+      utl::zero_print_tol = old_tol;
+    }
 
     if (model->opt.eig == 0) break;
 
