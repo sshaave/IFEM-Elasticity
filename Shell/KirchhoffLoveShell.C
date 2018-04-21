@@ -14,18 +14,10 @@
 #include "KirchhoffLoveShell.h"
 #include "LinIsotropic.h"
 #include "FiniteElement.h"
-#include "Utilities.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
-
-
-KirchhoffLoveShell::KirchhoffLoveShell () : KirchhoffLove(3)
-{
-  tracFld = nullptr;
-  fluxFld = nullptr;
-}
 
 
 void KirchhoffLoveShell::printLog () const
@@ -61,45 +53,6 @@ bool KirchhoffLoveShell::evalInt (LocalIntegral& elmInt,
     this->formBodyForce(elMat.b[eS-1],fe.N,fe.iGP,X,fe.detJxW);
 
   return true;
-}
-
-
-void KirchhoffLoveShell::formMassMatrix (Matrix& EM, const Vector& N,
-                                         const Vec3& X, double detJW) const
-{
-  double rhow = material->getMassDensity(X)*thickness*detJW;
-  if (rhow == 0.0) return;
-
-  for (size_t a = 1; a <= N.size(); a++)
-    for (size_t b = 1; b <= N.size(); b++)
-      for (unsigned short int i = 1; i <= 3; i++)
-        EM(3*(a-1)+i,3*(b-1)+i) += rhow*N(a)*N(b);
-}
-
-
-void KirchhoffLoveShell::formBodyForce (Vector& ES, const Vector& N, size_t iP,
-                                        const Vec3& X, double detJW) const
-{
-  double p = this->getPressure(X);
-  if (p == 0.0) return;
-
-  for (size_t a = 1; a <= N.size(); a++)
-    ES(3*a) += N(a)*p*detJW;
-
-  // Store pressure value for visualization
-  if (iP < presVal.size())
-    presVal[iP] = std::make_pair(X,Vec3(0.0,0.0,p));
-}
-
-
-Vec3 KirchhoffLoveShell::getTraction (const Vec3& X, const Vec3& n) const
-{
-  if (fluxFld)
-    return (*fluxFld)(X);
-  else if (tracFld)
-    return (*tracFld)(X,n);
-  else
-    return Vec3();
 }
 
 
@@ -276,37 +229,30 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
     for (unsigned short int i = 1; i <= 3; i++)
       ES(3*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
 
+  // Store traction value for visualization
+  if (fe.iGP < tracVal.size() && !T.isZero())
+  {
+    tracVal[fe.iGP].first = X;
+    tracVal[fe.iGP].second += T;
+  }
+
   return true;
 }
 
 
-bool KirchhoffLoveShell::evalSol (Vector& s,
+bool KirchhoffLoveShell::evalSol (Vector& s, const Vector& eV,
                                   const FiniteElement& fe, const Vec3& X,
-                                  const std::vector<int>& MNPC) const
+                                  bool toLocal) const
 {
-  // Extract element displacements
-  Vector eV;
-  if (!primsol.empty() && !primsol.front().empty())
-  {
-    int ierr = utl::gather(MNPC,3,primsol.front(),eV);
-    if (ierr > 0)
-    {
-      std::cerr <<" *** KirchhoffLoveShell::evalSol: Detected "
-		<< ierr <<" node numbers out of range."<< std::endl;
-      return false;
-    }
-  }
-  s.reserve(18);
-
-  // Evaluate the stress resultant tensor
-  Vector sb;
-  if (!this->evalSol(s,sb,eV,fe,X,true))
+  // Evaluate the stress resultants (in-plane forces and bending moments)
+  s.reserve(18); Vector sb;
+  if (!this->evalSol(s,sb,eV,fe,X,toLocal))
     return false;
+  else
+    s.insert(s.end(),sb.begin(),sb.end());
 
-  // Append the bending moment to the stress array
-  s.insert(s.end(),sb.begin(),sb.end());
-
-  // Calculate top and bottom surface stresses
+  // Calculate top and bottom surface stresses;
+  // stress tensor components, principal stresses and von Mises stress
   SymmTensor sigma(2);
   Vec3       sigma_p;
   for (int isurf = -1; isurf < 2; isurf += 2)
@@ -510,7 +456,7 @@ bool KirchhoffLoveShellNorm::evalBou (LocalIntegral& elmInt,
                                       const Vec3& X, const Vec3& normal) const
 {
   KirchhoffLoveShell& problem = static_cast<KirchhoffLoveShell&>(myProblem);
-  if (!problem.haveLoads()) return true;
+  if (!problem.haveLoads('B')) return true;
 
   ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
 
