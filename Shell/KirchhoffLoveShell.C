@@ -184,20 +184,13 @@ bool KirchhoffLoveShell::formBmatrix (Matrix& Bm, Matrix& Bb, const FiniteElemen
         Vec3 dg3(g1,dg2);
         dg3 = dg3 + dummy2;
 
-        double g3dg3lg3_3 = g3*dg3/(lg3*lg3*lg3); // eq 5.31 last part
+        double g3dg3lg3_3 = g3*dg3/(lg3*lg3*lg3); 
 
-        Vec3 dn; // eq 5.31 dn = a3,rs (kanskje)
-        for (int kaffi = 1; kaffi <= 3; kaffi ++)
-          {
-             dn(kaffi) = dg3(kaffi)/lg3 - g3(kaffi)*g3dg3lg3_3;
-          }
-
-
+        Vec3 dn = dg3/lg3 - g3*g3dg3lg3_3; 
 
         dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn);
         dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn);
         dK_cu(3,i) = -(fe.d2NdX2(k,1,2)*n(dir) + fe.H.getColumn(3)*dn);
-
 
       } // for int i = 0; i <= ndof; i++
 
