@@ -159,8 +159,6 @@ bool KirchhoffLoveShell::formBmatrix (Matrix& Bm, Matrix& Bb, const FiniteElemen
 
     // Strain
     int ndof = fe.N.size()*3;
-    Matrix dE_ca(3,ndof); // dE_ca = epsilon cartesian coordinates
-    Matrix dK_ca(3,ndof); // dK_ca = kappa cartesian coordinates
     Matrix dE_cu(3,ndof); // dE_cu = epsilon curvelinear coordinate system
     Matrix dK_cu(3,ndof); // dK_cu = kappa curvelinear
 

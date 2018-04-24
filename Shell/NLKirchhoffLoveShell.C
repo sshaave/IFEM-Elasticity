@@ -74,7 +74,7 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
                                       const Matrix& H0, const Matrix& Hn,
                                       const Vec3& X) const
 {
- int ndof = fe.N.size()*3;
+      int ndof = fe.N.size()*3;
       Matrix kem(ndof,ndof);
       Matrix keb(ndof,ndof);
       Matrix fiem(ndof,1);
@@ -89,7 +89,7 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
 
       Matrix dK_ca; Matrix dE_ca; Matrix3D ddE_ca; Matrix3D ddK_ca;
       Vec3 E_ca; Vec3 K_ca;
-      if (!this->formBmatrix(dE_ca,dK_ca,ddE_ca,ddK_ca,E_ca,K_ca,fe))
+      if (!this->formBmatrix(dE_ca,dK_ca,ddE_ca,ddK_ca,E_ca,G0,Gn,H0,Hn,K_ca,fe))
           return false;
       Matrix E_ca_m; Matrix K_ca_m;
       E_ca_m(1,1) = E_ca(1); E_ca_m(2,1) = E_ca(2); E_ca_m(3,1) = E_ca(3);
@@ -99,28 +99,48 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
       M_ca.multiply(Db,K_ca_m);
       dN_ca.multiply(Dm,dE_ca);
       dM_ca.multiply(Db,dK_ca);
-      // Uferdig --->
-      //kem.multiply(Bm,dN_ca,true,false,true);
-      //keb.multiply(Bb,dM_ca,true,false,true);
-      //kem.multiply(fe.detJxW);
-      //keb.multiply(fe.detJxW);
-      //EK.add(kem).add(keb);
-      //   <-----
+
+      for (int r = 1; r <= ndof; r++)
+      {
+          for (int s = 1; s <= r; s++)
+          {
+              kem(r,s) = dN_ca.getColumn(r)*dE_ca.getColumn(s) + N_ca.getColumn(1)*ddE_ca.getColumn(r,s);
+              keb(r,s) = dM_ca.getColumn(r)*dK_ca.getColumn(s) + M_ca.getColumn(1)*ddK_ca.getColumn(r,s);
+
+          }
+          fiem(r,1) = - (N_ca.getColumn(1)*dE_ca.getColumn(r));
+          fieb(r,1) = - (M_ca.getColumn(1)*dK_ca.getColumn(r));
+      }
+
+      Matrix kemd(ndof,ndof);
+      Matrix kebd(ndof,ndof);
+
+      for (int i; i <= ndof; i++)
+      {
+          kemd(i,i) = -kem(i,i);
+          kebd(i,i) = -keb(i,i);
+      }
+
+      kem.add(kem.transpose().add(kemd));
+      keb.add(keb.transpose().add(kebd));
+      EK = kem + keb;
+      ES = fiem + fieb;
 
       return true;
 }
 
 
-bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca,
-                    Matrix3D ddE_ca, Matrix3D ddK_ca,Vec3& E_ca,
-                                            Vec3& K_ca,const FiniteElement& fe) const
+bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D ddE_ca,
+                                        Matrix3D ddK_ca,Vec3& E_ca,const Matrix& G0, const Matrix& Gn,
+                                        const Matrix& H0, const Matrix& Hn, Vec3& K_ca,const FiniteElement& fe) const
 {
     // Declaring all variables
-    Vec3 g1; Vec3 g2;
+
+    Vec3 g1 = Gn.getColumn(1); Vec3 g2 = Gn.getColumn(2);
     Vec3 g3; double lg3; Vec3 n; Vec3 gab; Vec3 Gab; Vec3 Bv; Vec3 bv; Matrix T;
-    if (!this->getAllMetrics(g1,g2,g3,lg3,n,Gab,Bv,T, true, fe))
+    if (!this->getAllMetrics(G0,H0,g3,lg3,n,Gab,Bv,T, true))
         return false;
-    if (!this->getAllMetrics(g1,g2,g3,lg3,n,gab,bv,T, false, fe))
+    if (!this->getAllMetrics(Gn,Hn,g3,lg3,n,gab,bv,T, false))
         return false;
 
     double lg3_3 = lg3*lg3*lg3;
@@ -173,9 +193,9 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca,
         g3dg3lg3_3(1,i) = g3dg3(1,i)/(lg3_3);
         Vec3 temp = dg3.getColumn(i)/lg3 - g3*g3dg3lg3_3(1,i);                 //*
         dn(1,i) = temp(1); dn(2,i) = temp(2); dn(3,i) = temp(3);               //*
-        dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn);
-        dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn);
-        dK_cu(3,i) = -(fe.d2NdX2(k,1,2)*n(dir) + fe.H.getColumn(3)*dn);
+        dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn.getColumn(i));
+        dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn.getColumn(i));
+        dK_cu(3,i) = -(fe.d2NdX2(k,1,2)*n(dir) + fe.H.getColumn(3)*dn.getColumn(i));
 
       } // for int i = 0; i <= ndof; i++
 
@@ -184,11 +204,11 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca,
       // Bm.multiply(T,dE_cu); // Bm = dE_ca.multiply(T,dE_cu);
       // Bb.multiply(T,dK_cu); // Bb = dK_ca.multiply(T,dK_cu);
        Vec3 ddE_cu;
-      int kr; int dirr; int ks;
-      for (int i = 1; i <= ndof; i++) {
-          kr = ceil(i/3);
+      int kr; int dirr; int ks; int dirs; int ddir; int dirt;
+      for (int r = 1; r <= ndof; r++) {
+          kr = ceil(r/3);
           dirr = r-3*(kr-1);
-          for (int s = 1; s<=i; s++) {
+          for (int s = 1; s<=r; s++) {
               ks = ceil(s/3);
               dirs = s-3*(ks-1);
               //strain
@@ -208,21 +228,21 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca,
               ddg3 = ddg3*0;
               dirt = 6-dirr-dirs;
               ddir = dirr-dirs;
-              if (ddir == -1 || ddir = 2) {
+              if (ddir == -1 || ddir == 2) {
                   ddg3(dirt) = fe.dNdX(kr,1)*fe.dNdX(ks,2) - fe.dNdX(ks,1)*fe.dNdX(kr,2);
               } else if (ddir == 1 || ddir == -2) {
                   ddg3(dirt) =  -fe.dNdX(kr,1)*fe.dNdX(ks,2) + fe.dNdX(ks,1)*fe.dNdX(kr,2);
               } // end if
               C = -( ddg3*g3+ dg3(1,r)*dg3(1,s) + dg3(2,r)*dg3(2,s) + dg3(3,r)*dg3(3,s)
                         )/lg3_3;
-              D = 3*g3dg3(r)*g3dg3(s)/lg3_5;
-              ddn = ddg3/lg3 - dg3.getColumn(r)*g3dg3lg3_3(s)
-                  - g3dg3lg3_3(r)*dg3.getColumn(s) + C*g3 + D*g3;
-              ddK_cu(1) = -(fe.d2NdX2(kr,1)*dn(dirr,s) + fe.d2NdX2(ks,1)*
+              D = 3*g3dg3(1,r)*g3dg3(1,s)/lg3_5;
+              ddn = ddg3/lg3 - dg3.getColumn(r)*g3dg3lg3_3(1,s)
+                  - g3dg3lg3_3(1,r)*dg3.getColumn(s) + C*g3 + D*g3;
+              ddK_cu(1) = -(fe.d2NdX2(kr,1,1)*dn(dirr,s) + fe.d2NdX2(ks,1,1)*
                   dn(dirs,r) + fe.H(1,1)*ddn(1) + fe.H(2,1)*ddn(2) + fe.H(3,1)*ddn(3));
-              ddK_cu(2) = -(fe.d2NdX2(kr,2)*dn(dirr,s) + fe.d2NdX2(ks,2)*
+              ddK_cu(2) = -(fe.d2NdX2(kr,2,2)*dn(dirr,s) + fe.d2NdX2(ks,2,2)*
                   dn(dirs,r) + fe.H(1,2)*ddn(1) + fe.H(2,2)*ddn(2) + fe.H(3,2)*ddn(3));
-              ddK_cu(3) = -(fe.d2NdX2(kr,3)*dn(dirr,s) + fe.d2NdX2(ks,3)*
+              ddK_cu(3) = -(fe.d2NdX2(kr,1,2)*dn(dirr,s) + fe.d2NdX2(ks,1,2)*
                   dn(dirs,r) + fe.H(1,3)*ddn(1) + fe.H(2,3)*ddn(2) + fe.H(3,3)*ddn(3));
               ddK_ca(1,r,s) = T.getRow(1)*ddK_cu;
               ddK_ca(2,r,s) = T.getRow(2)*ddK_cu;
@@ -233,22 +253,17 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca,
 }
 
 
-bool NLKirchhoffLoveShell::getAllMetrics (Vec3& g1, Vec3& g2, Vec3& g3, double& lg3,Vec3& n,Vec3& gab,Vec3& Bv,Matrix& T,
-                                        const bool ref, const FiniteElement& fe) const
+bool NLKirchhoffLoveShell::getAllMetrics (const Matrix& G, const Matrix& H, Vec3& g3, double& lg3,Vec3& n,Vec3& gab,Vec3& Bv,Matrix& T,
+                                        const bool ref) const
  {
   // Har ikke definert "dA"
-  if (ref) {
-    Vec3 g1 = fe.G.getColumn(1);
-    Vec3 g2 = fe.G.getColumn(2);
-  } else {
-    Vec3 g1 = fe.G.getColumn(3); // Må kanskje endre her
-    Vec3 g2 = fe.G.getColumn(4);
-  }
+  Vec3 g1 = G.getColumn(1);
+  Vec3 g2 = G.getColumn(2);
 
   // Basis vector g3
-  g3(g1,g2);
+  g3.cross(g1,g2);
   lg3 = g3.length();	
-  n(g3);
+  n = g3;
   n.normalize();
 
   // Covariant metric gab
@@ -260,9 +275,9 @@ bool NLKirchhoffLoveShell::getAllMetrics (Vec3& g1, Vec3& g2, Vec3& g3, double& 
     {
     // Contravariant metric gab_con and base vectors g_con
     double invdetgab =  1.0/(gab(1)*gab(3)-gab(2)*gab(2));
-    double gab_con11 =  invdetgab*gab22;
-    double gab_con12 = -invdetgab*gab12;
-    double gab_con22 =  invdetgab*gab11;
+    double gab_con11 =  invdetgab*gab(3);
+    double gab_con12 = -invdetgab*gab(2);
+    double gab_con22 =  invdetgab*gab(1);
     Vec3 g1_con = g1*gab_con11 + g2*gab_con12;
     Vec3 g2_con = g1*gab_con12 + g2*gab_con22;
     // Local cartesian coordinates
@@ -283,9 +298,9 @@ bool NLKirchhoffLoveShell::getAllMetrics (Vec3& g1, Vec3& g2, Vec3& g3, double& 
     T(3,2) = 2.0* eg12*eg22;
     T(3,3) = 2.0*(eg11*eg22+eg12*eg21);
   }
-  Bv(1) = fe.H.getColumn(1) * n;
-  Bv(2) = fe.H.getColumn(2) * n;
-  Bv(3) = fe.H.getColumn(3) * n;
+  Bv(1) = H.getColumn(1) * n;
+  Bv(2) = H.getColumn(2) * n;
+  Bv(3) = H.getColumn(3) * n;
 
   return true;
 }
