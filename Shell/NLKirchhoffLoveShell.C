@@ -36,17 +36,17 @@ bool NLKirchhoffLoveShell::evalInt (LocalIntegral& elmInt,
                                     const FiniteElement& fe,
                                     const Vec3& X) const
 {
-  if (elmInt.vec.size() < 2)
-    return false;
-
-  // Co-variant basis and Hessian in deformed configuration
   Matrix Gd, Hd;
-  Matrix3D Hess;
-  Gd.multiplyMat(elmInt.vec.back(),fe.dNdX);
-  if (Hess.multiplyMat(elmInt.vec.back(),fe.d2NdX2))
-    utl::Hessian(Hess,Hd);
-  else
-    return false;
+  if (elmInt.vec.size() > 1)
+  {
+    // Co-variant basis and Hessian in deformed configuration
+    Matrix3D Hess;
+    Gd.multiplyMat(elmInt.vec.back(),fe.dNdX);
+    if (Hess.multiplyMat(elmInt.vec.back(),fe.d2NdX2))
+      utl::Hessian(Hess,Hd);
+    else
+      return false;
+  }
 
   ElmMats& elMat = static_cast<ElmMats&>(elmInt);
 
@@ -87,14 +87,14 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
       if (!this->formDmatrix(Dm,Db,fe,X))
         return false;      
 
-      Matrix dK_ca; Matrix dE_ca; Matrix3D ddE_ca; Matrix3D ddK_ca;
+      Matrix dK_ca(ndof,ndof); Matrix dE_ca(ndof,ndof); Matrix3D ddE_ca(ndof,ndof,ndof); Matrix3D ddK_ca(ndof,ndof,ndof);
       Vec3 E_ca; Vec3 K_ca;
       if (!this->formBmatrix(dE_ca,dK_ca,ddE_ca,ddK_ca,E_ca,G0,Gn,H0,Hn,K_ca,fe))
           return false;
-      Matrix E_ca_m; Matrix K_ca_m;
+      Matrix E_ca_m(3,1); Matrix K_ca_m(3,1);
       E_ca_m(1,1) = E_ca(1); E_ca_m(2,1) = E_ca(2); E_ca_m(3,1) = E_ca(3);
       K_ca_m(1,1) = K_ca(1); K_ca_m(2,1) = K_ca(2); K_ca_m(3,1) = K_ca(3);
-      Matrix N_ca; Matrix M_ca;
+      Matrix N_ca(ndof,ndof); Matrix M_ca;
       N_ca.multiply(Dm,E_ca_m);
       M_ca.multiply(Db,K_ca_m);
       dN_ca.multiply(Dm,dE_ca);
@@ -134,32 +134,47 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
                                         Matrix3D ddK_ca,Vec3& E_ca,const Matrix& G0, const Matrix& Gn,
                                         const Matrix& H0, const Matrix& Hn, Vec3& K_ca,const FiniteElement& fe) const
 {
-    // Declaring all variables
+  // Declaring all variables
+  Vec3 g1, g2, g3; double lg3;
+  Vec3 n, gab, Gab, bv, Bv;
+  Matrix T(3,3);
+  if (!this->getAllMetrics(G0,H0,g3,lg3,n,Gab,Bv,T,true))
+    return false;
 
-    Vec3 g1 = Gn.getColumn(1); Vec3 g2 = Gn.getColumn(2);
-    Vec3 g3; double lg3; Vec3 n; Vec3 gab; Vec3 Gab; Vec3 Bv; Vec3 bv; Matrix T;
-    if (!this->getAllMetrics(G0,H0,g3,lg3,n,Gab,Bv,T, true))
-        return false;
-    if (!this->getAllMetrics(Gn,Hn,g3,lg3,n,gab,bv,T, false))
-        return false;
+  if (Gn.empty())
+  {
+    // Initial configuration, no deformation yet
+    g1 = G0.getColumn(1);
+    g2 = G0.getColumn(2);
+    gab = Gab;
+    bv = Bv;
+  }
+  else
+  {
+    // Deformed configuration
+    g1 = Gn.getColumn(1);
+    g2 = Gn.getColumn(2);
+    if (!this->getAllMetrics(Gn,Hn,g3,lg3,n,gab,bv,T,false))
+      return false;
+  }
 
-    double lg3_3 = lg3*lg3*lg3;
-    double lg3_5 = lg3*lg3*lg3*lg3*lg3;
+  double lg3_3 = lg3*lg3*lg3;
+  double lg3_5 = lg3_3*lg3*lg3;
 
     // Strain vector referred to curvilinear coor sys
     Vec3 E_cu = 0.5*(gab-Gab);
     // Strain vector referred to cartesian coor sys  -
-    Matrix E_cu_m;
+    Matrix E_cu_m(3,1);
     E_cu_m(1,1) = E_cu(1); E_cu_m(2,1) = E_cu(2); E_cu_m(3,1) = E_cu(3);  //*
-    Matrix E_ca_m;                                                        //*
-    E_ca_m.multiply(E_cu_m,T);                                            //*
+    Matrix E_ca_m(3,1);                                                        //*
+    E_ca_m.multiply(T,E_cu_m);                                            //*
     E_ca(1) = E_ca_m(1,1); E_ca(2) = E_ca_m(2,1); E_ca(3) = E_ca_m(3,1);  //*
     // Curvature vector [K11,K22,K12] referred to curvilinear coor sys
     Vec3 K_cu = (Bv -bv);
     // Curvature vector referred to cart coor sys   -
-    Matrix K_cu_m;
+    Matrix K_cu_m(3,1);
     K_cu_m(1,1) = K_cu(1); K_cu_m(2,1) = K_cu(2); K_cu_m(3,1) = K_cu(3);  //*
-    Matrix K_ca_m;                                                        //*
+    Matrix K_ca_m(3,1);                                                        //*
     K_ca_m.multiply(T,K_cu_m);                                            //*
     K_ca(1) = K_ca_m(1,1); K_ca(2) = K_ca_m(2,1); K_ca(3) = K_ca_m(3,1);  //*
     // Strain
@@ -203,13 +218,15 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
       dK_ca.multiply(T,dK_cu);
       // Bm.multiply(T,dE_cu); // Bm = dE_ca.multiply(T,dE_cu);
       // Bb.multiply(T,dK_cu); // Bb = dK_ca.multiply(T,dK_cu);
-       Vec3 ddE_cu;
+      Vec3 ddE_cu; double tempI; double tempI2;
       int kr; int dirr; int ks; int dirs; int ddir; int dirt;
       for (int r = 1; r <= ndof; r++) {
-          kr = ceil(r/3);
+          tempI = r;
+          kr = ceil(tempI/3);
           dirr = r-3*(kr-1);
           for (int s = 1; s<=r; s++) {
-              ks = ceil(s/3);
+              tempI2 = s;
+              ks = ceil(tempI2/3);
               dirs = s-3*(ks-1);
               //strain
               if (dirr == dirs) {
