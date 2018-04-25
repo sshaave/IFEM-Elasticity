@@ -87,14 +87,14 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
       if (!this->formDmatrix(Dm,Db,fe,X))
         return false;      
 
-      Matrix dK_ca(ndof,ndof); Matrix dE_ca(ndof,ndof); Matrix3D ddE_ca(ndof,ndof,ndof); Matrix3D ddK_ca(ndof,ndof,ndof);
+      Matrix dK_ca(ndof,ndof); Matrix dE_ca(ndof,ndof); Matrix3D ddE_ca(3,ndof,ndof); Matrix3D ddK_ca(3,ndof,ndof);
       Vec3 E_ca; Vec3 K_ca;
       if (!this->formBmatrix(dE_ca,dK_ca,ddE_ca,ddK_ca,E_ca,G0,Gn,H0,Hn,K_ca,fe))
           return false;
       Matrix E_ca_m(3,1); Matrix K_ca_m(3,1);
       E_ca_m(1,1) = E_ca(1); E_ca_m(2,1) = E_ca(2); E_ca_m(3,1) = E_ca(3);
       K_ca_m(1,1) = K_ca(1); K_ca_m(2,1) = K_ca(2); K_ca_m(3,1) = K_ca(3);
-      Matrix N_ca(ndof,ndof); Matrix M_ca;
+      Matrix N_ca(3,1); Matrix M_ca(3,1);
       N_ca.multiply(Dm,E_ca_m);
       M_ca.multiply(Db,K_ca_m);
       dN_ca.multiply(Dm,dE_ca);
@@ -102,29 +102,28 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
 
       for (int r = 1; r <= ndof; r++)
       {
-          for (int s = 1; s <= r; s++)
+          for (int s = 1; s <= ndof; s++)
           {
-              kem(r,s) = dN_ca.getColumn(r)*dE_ca.getColumn(s) + N_ca.getColumn(1)*ddE_ca.getColumn(r,s);
-              keb(r,s) = dM_ca.getColumn(r)*dK_ca.getColumn(s) + M_ca.getColumn(1)*ddK_ca.getColumn(r,s);
-
+              kem(r,s) = N_ca.getColumn(1)*ddE_ca.getColumn(r,s);
+              keb(r,s) = M_ca.getColumn(1)*ddK_ca.getColumn(r,s);
           }
-          fiem(r,1) = - (N_ca.getColumn(1)*dE_ca.getColumn(r));
-          fieb(r,1) = - (M_ca.getColumn(1)*dK_ca.getColumn(r));
+          fiem(r,1) = - (N_ca.getColumn(1)*dE_ca.getColumn(r)); // kan sannsynligvis fjerne disse
+          fieb(r,1) = - (M_ca.getColumn(1)*dK_ca.getColumn(r)); //
       }
+      Matrix KEM(ndof,ndof); Matrix KEB(ndof,ndof);
 
-      Matrix kemd(ndof,ndof);
-      Matrix kebd(ndof,ndof);
+      KEM.multiply(dN_ca.transpose(),dE_ca);
+      KEB.multiply(dM_ca.transpose(),dK_ca);
 
-      for (int i; i <= ndof; i++)
-      {
-          kemd(i,i) = -kem(i,i);
-          kebd(i,i) = -keb(i,i);
-      }
+      Matrix FIEM(ndof,1); Matrix FIEB(ndof,1);
+      FIEM.multiply(dE_ca.transpose(),N_ca);
+      FIEB.multiply(dK_ca.transpose(),M_ca);
 
-      kem.add(kem.transpose().add(kemd));
-      keb.add(keb.transpose().add(kebd));
+      kem.add(KEM);
+      keb.add(KEB);
       EK = kem + keb;
-      ES = fiem + fieb;
+      EK.multiply(fe.detJxW);
+      ES = (FIEM + FIEB)*fe.detJxW;
 
       return true;
 }
@@ -161,112 +160,112 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
   double lg3_3 = lg3*lg3*lg3;
   double lg3_5 = lg3_3*lg3*lg3;
 
-    // Strain vector referred to curvilinear coor sys
-    Vec3 E_cu = 0.5*(gab-Gab);
-    // Strain vector referred to cartesian coor sys  -
-    Matrix E_cu_m(3,1);
-    E_cu_m(1,1) = E_cu(1); E_cu_m(2,1) = E_cu(2); E_cu_m(3,1) = E_cu(3);  //*
-    Matrix E_ca_m(3,1);                                                        //*
-    E_ca_m.multiply(T,E_cu_m);                                            //*
-    E_ca(1) = E_ca_m(1,1); E_ca(2) = E_ca_m(2,1); E_ca(3) = E_ca_m(3,1);  //*
-    // Curvature vector [K11,K22,K12] referred to curvilinear coor sys
-    Vec3 K_cu = (Bv -bv);
-    // Curvature vector referred to cart coor sys   -
-    Matrix K_cu_m(3,1);
-    K_cu_m(1,1) = K_cu(1); K_cu_m(2,1) = K_cu(2); K_cu_m(3,1) = K_cu(3);  //*
-    Matrix K_ca_m(3,1);                                                        //*
-    K_ca_m.multiply(T,K_cu_m);                                            //*
-    K_ca(1) = K_ca_m(1,1); K_ca(2) = K_ca_m(2,1); K_ca(3) = K_ca_m(3,1);  //*
-    // Strain
-    int ndof = fe.N.size()*3;
-   // Matrix dE_ca(3,ndof); // dE_ca = epsilon cartesian coordinates
-   // Matrix dK_ca(3,ndof); // dK_ca = kappa cartesian coordinates
-    Matrix dE_cu(3,ndof); // dE_cu = epsilon curvelinear coordinate system
-    Matrix dK_cu(3,ndof); // dK_cu = kappa curvelinear
+  // Strain vector referred to curvilinear coor sys
+  Vec3 E_cu = 0.5*(gab-Gab);
+  // Strain vector referred to cartesian coor sys  -
+  Matrix E_cu_m(3,1);
+  E_cu_m(1,1) = E_cu(1); E_cu_m(2,1) = E_cu(2); E_cu_m(3,1) = E_cu(3);  //*
+  Matrix E_ca_m(3,1);                                                        //*
+  E_ca_m.multiply(T,E_cu_m);                                            //*
+  E_ca(1) = E_ca_m(1,1); E_ca(2) = E_ca_m(2,1); E_ca(3) = E_ca_m(3,1);  //*
+  // Curvature vector [K11,K22,K12] referred to curvilinear coor sys
+  Vec3 K_cu = (Bv -bv);
+  // Curvature vector referred to cart coor sys   -
+  Matrix K_cu_m(3,1);
+  K_cu_m(1,1) = K_cu(1); K_cu_m(2,1) = K_cu(2); K_cu_m(3,1) = K_cu(3);  //*
+  Matrix K_ca_m(3,1);                                                        //*
+  K_ca_m.multiply(T,K_cu_m);                                            //*
+  K_ca(1) = K_ca_m(1,1); K_ca(2) = K_ca_m(2,1); K_ca(3) = K_ca_m(3,1);  //*
+  // Strain
+  int ndof = fe.N.size()*3;
+  // Matrix dE_ca(3,ndof); // dE_ca = epsilon cartesian coordinates
+  // Matrix dK_ca(3,ndof); // dK_ca = kappa cartesian coordinates
+  Matrix dE_cu(3,ndof); // dE_cu = epsilon curvelinear coordinate system
+  Matrix dK_cu(3,ndof); // dK_cu = kappa curvelinear
 
-    // declaring all variables outside the loop
-    double dummy; double k; int dir; Vec3 dg1;  Vec3 dg2; Matrix dg3(3,ndof);
-    Matrix g3dg3lg3_3(1,ndof);Matrix g3dg3(1,ndof); Matrix dn(3,ndof); Vec3 ddg3;
-    double C; double D; Vec3 ddn; Vec3 ddK_cu;
-      for (int i = 1; i <= ndof; i++)
-      {
-        dummy = i;
-        k = ceil(dummy/3);
-        dir = i-3*(k-1);
+  // declaring all variables outside the loop
+  double dummy; double k; int dir; Vec3 dg1;  Vec3 dg2; Matrix dg3(3,ndof);
+  Matrix g3dg3lg3_3(1,ndof);Matrix g3dg3(1,ndof); Matrix dn(3,ndof); Vec3 ddg3;
+  double C; double D; Vec3 ddn; Vec3 ddK_cu;
+    for (int i = 1; i <= ndof; i++)
+    {
+      dummy = i;
+      k = ceil(dummy/3);
+      dir = i-3*(k-1);
 
-        dE_cu(1,i) = fe.dNdX(k,1)*g1(dir);
-        dE_cu(2,i) = fe.dNdX(k,2)*g2(dir);
-        dE_cu(3,i) = 0.5*(fe.dNdX(k,1)*g2(dir) + fe.dNdX(k,2)*g1(dir));
+      dE_cu(1,i) = fe.dNdX(k,1)*g1(dir);
+      dE_cu(2,i) = fe.dNdX(k,2)*g2(dir);
+      dE_cu(3,i) = 0.5*(fe.dNdX(k,1)*g2(dir) + fe.dNdX(k,2)*g1(dir));
 
-        dg1(dir) = fe.dNdX(k,1);
-        dg2(dir) = fe.dNdX(k,2);
+      dg1(dir) = fe.dNdX(k,1);
+      dg2(dir) = fe.dNdX(k,2);
 
-        dg3(1,i) = dg1(2)*g2(3) - dg1(3)*g2(2) + g1(2)*dg2(3) - g1(3)*dg2(2);  // *
-        dg3(2,i) = dg1(3)*g2(1) - dg1(1)*g2(3) + g1(3)*dg2(1) - g1(1)*dg2(3);  // *
-        dg3(3,i) = dg1(1)*g2(2) - dg1(2)*g2(1) + g1(1)*dg2(2) - g1(2)*dg2(1);  // *
-        g3dg3(1,i) = g3*dg3.getColumn(i);
-        g3dg3lg3_3(1,i) = g3dg3(1,i)/(lg3_3);
-        Vec3 temp = dg3.getColumn(i)/lg3 - g3*g3dg3lg3_3(1,i);                 //*
-        dn(1,i) = temp(1); dn(2,i) = temp(2); dn(3,i) = temp(3);               //*
-        dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn.getColumn(i));
-        dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn.getColumn(i));
-        dK_cu(3,i) = -(fe.d2NdX2(k,1,2)*n(dir) + fe.H.getColumn(3)*dn.getColumn(i));
+      dg3(1,i) = dg1(2)*g2(3) - dg1(3)*g2(2) + g1(2)*dg2(3) - g1(3)*dg2(2);  // *
+      dg3(2,i) = dg1(3)*g2(1) - dg1(1)*g2(3) + g1(3)*dg2(1) - g1(1)*dg2(3);  // *
+      dg3(3,i) = dg1(1)*g2(2) - dg1(2)*g2(1) + g1(1)*dg2(2) - g1(2)*dg2(1);  // *
+      g3dg3(1,i) = g3*dg3.getColumn(i);
+      g3dg3lg3_3(1,i) = g3dg3(1,i)/(lg3_3);
+      Vec3 temp = dg3.getColumn(i)/lg3 - g3*g3dg3lg3_3(1,i);                 //*
+      dn(1,i) = temp(1); dn(2,i) = temp(2); dn(3,i) = temp(3);               //*
+      dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn.getColumn(i));
+      dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn.getColumn(i));
+      dK_cu(3,i) = -(fe.d2NdX2(k,1,2)*n(dir) + fe.H.getColumn(3)*dn.getColumn(i));
 
-      } // for int i = 0; i <= ndof; i++
+    } // for int i = 0; i <= ndof; i++
 
-      dE_ca.multiply(T,dE_cu);
-      dK_ca.multiply(T,dK_cu);
-      // Bm.multiply(T,dE_cu); // Bm = dE_ca.multiply(T,dE_cu);
-      // Bb.multiply(T,dK_cu); // Bb = dK_ca.multiply(T,dK_cu);
-      Vec3 ddE_cu; double tempI; double tempI2;
-      int kr; int dirr; int ks; int dirs; int ddir; int dirt;
-      for (int r = 1; r <= ndof; r++) {
-          tempI = r;
-          kr = ceil(tempI/3);
-          dirr = r-3*(kr-1);
-          for (int s = 1; s<=r; s++) {
-              tempI2 = s;
-              ks = ceil(tempI2/3);
-              dirs = s-3*(ks-1);
-              //strain
-              if (dirr == dirs) {
-                  ddE_cu(1) = fe.dNdX(kr,1)*fe.dNdX(ks,1);
-                  ddE_cu(2) = fe.dNdX(kr,2)*fe.dNdX(ks,2);
-                  ddE_cu(3) = 0.5*(fe.dNdX(kr,1)*fe.dNdX(ks,2)
-                                   + fe.dNdX(kr,2)*fe.dNdX(ks,1));
-                } else {
-                  ddE_cu = ddE_cu*0;
-                }
-              ddE_ca(1,r,s) = T.getRow(1)*ddE_cu;
-              ddE_ca(2,r,s) = T.getRow(2)*ddE_cu;
-              ddE_ca(3,r,s) = T.getRow(3)*ddE_cu;
+    dE_ca.multiply(T,dE_cu);
+    dK_ca.multiply(T,dK_cu);
+    // Bm.multiply(T,dE_cu); // Bm = dE_ca.multiply(T,dE_cu);
+    // Bb.multiply(T,dK_cu); // Bb = dK_ca.multiply(T,dK_cu);
+    Vec3 ddE_cu; double tempI; double tempI2;
+    int kr; int dirr; int ks; int dirs; int ddir; int dirt;
+    for (int r = 1; r <= ndof; r++) {
+        tempI = r;
+        kr = ceil(tempI/3);
+        dirr = r-3*(kr-1);
+        for (int s = 1; s<=r; s++) {
+            tempI2 = s;
+            ks = ceil(tempI2/3);
+            dirs = s-3*(ks-1);
+            //strain
+            if (dirr == dirs) {
+                ddE_cu(1) = fe.dNdX(kr,1)*fe.dNdX(ks,1);
+                ddE_cu(2) = fe.dNdX(kr,2)*fe.dNdX(ks,2);
+                ddE_cu(3) = 0.5*(fe.dNdX(kr,1)*fe.dNdX(ks,2)
+                                 + fe.dNdX(kr,2)*fe.dNdX(ks,1));
+              } else {
+                ddE_cu = ddE_cu*0;
+              }
+            ddE_ca(1,r,s) = T.getRow(1)*ddE_cu;
+            ddE_ca(2,r,s) = T.getRow(2)*ddE_cu;
+            ddE_ca(3,r,s) = T.getRow(3)*ddE_cu;
 
-              // Curvature
-              ddg3 = ddg3*0;
-              dirt = 6-dirr-dirs;
-              ddir = dirr-dirs;
-              if (ddir == -1 || ddir == 2) {
-                  ddg3(dirt) = fe.dNdX(kr,1)*fe.dNdX(ks,2) - fe.dNdX(ks,1)*fe.dNdX(kr,2);
-              } else if (ddir == 1 || ddir == -2) {
-                  ddg3(dirt) =  -fe.dNdX(kr,1)*fe.dNdX(ks,2) + fe.dNdX(ks,1)*fe.dNdX(kr,2);
-              } // end if
-              C = -( ddg3*g3+ dg3(1,r)*dg3(1,s) + dg3(2,r)*dg3(2,s) + dg3(3,r)*dg3(3,s)
-                        )/lg3_3;
-              D = 3*g3dg3(1,r)*g3dg3(1,s)/lg3_5;
-              ddn = ddg3/lg3 - dg3.getColumn(r)*g3dg3lg3_3(1,s)
-                  - g3dg3lg3_3(1,r)*dg3.getColumn(s) + C*g3 + D*g3;
-              ddK_cu(1) = -(fe.d2NdX2(kr,1,1)*dn(dirr,s) + fe.d2NdX2(ks,1,1)*
-                  dn(dirs,r) + fe.H(1,1)*ddn(1) + fe.H(2,1)*ddn(2) + fe.H(3,1)*ddn(3));
-              ddK_cu(2) = -(fe.d2NdX2(kr,2,2)*dn(dirr,s) + fe.d2NdX2(ks,2,2)*
-                  dn(dirs,r) + fe.H(1,2)*ddn(1) + fe.H(2,2)*ddn(2) + fe.H(3,2)*ddn(3));
-              ddK_cu(3) = -(fe.d2NdX2(kr,1,2)*dn(dirr,s) + fe.d2NdX2(ks,1,2)*
-                  dn(dirs,r) + fe.H(1,3)*ddn(1) + fe.H(2,3)*ddn(2) + fe.H(3,3)*ddn(3));
-              ddK_ca(1,r,s) = T.getRow(1)*ddK_cu;
-              ddK_ca(2,r,s) = T.getRow(2)*ddK_cu;
-              ddK_ca(3,r,s) = T.getRow(3)*ddK_cu;
-            }
-        }
-    return true;
+            // Curvature
+            ddg3 = ddg3*0;
+            dirt = 6-dirr-dirs;
+            ddir = dirr-dirs;
+            if (ddir == -1 || ddir == 2) {
+                ddg3(dirt) = fe.dNdX(kr,1)*fe.dNdX(ks,2) - fe.dNdX(ks,1)*fe.dNdX(kr,2);
+            } else if (ddir == 1 || ddir == -2) {
+                ddg3(dirt) =  -fe.dNdX(kr,1)*fe.dNdX(ks,2) + fe.dNdX(ks,1)*fe.dNdX(kr,2);
+            } // end if
+            C = -( ddg3*g3+ dg3(1,r)*dg3(1,s) + dg3(2,r)*dg3(2,s) + dg3(3,r)*dg3(3,s)
+                      )/lg3_3;
+            D = 3*g3dg3(1,r)*g3dg3(1,s)/lg3_5;
+            ddn = ddg3/lg3 - dg3.getColumn(r)*g3dg3lg3_3(1,s)
+                - g3dg3lg3_3(1,r)*dg3.getColumn(s) + C*g3 + D*g3;
+            ddK_cu(1) = -(fe.d2NdX2(kr,1,1)*dn(dirr,s) + fe.d2NdX2(ks,1,1)*
+                dn(dirs,r) + fe.H(1,1)*ddn(1) + fe.H(2,1)*ddn(2) + fe.H(3,1)*ddn(3));
+            ddK_cu(2) = -(fe.d2NdX2(kr,2,2)*dn(dirr,s) + fe.d2NdX2(ks,2,2)*
+                dn(dirs,r) + fe.H(1,2)*ddn(1) + fe.H(2,2)*ddn(2) + fe.H(3,2)*ddn(3));
+            ddK_cu(3) = -(fe.d2NdX2(kr,1,2)*dn(dirr,s) + fe.d2NdX2(ks,1,2)*
+                dn(dirs,r) + fe.H(1,3)*ddn(1) + fe.H(2,3)*ddn(2) + fe.H(3,3)*ddn(3));
+            ddK_ca(1,r,s) = T.getRow(1)*ddK_cu;
+            ddK_ca(2,r,s) = T.getRow(2)*ddK_cu;
+            ddK_ca(3,r,s) = T.getRow(3)*ddK_cu;
+          }
+      }
+  return true;
 }
 
 
@@ -289,7 +288,7 @@ bool NLKirchhoffLoveShell::getAllMetrics (const Matrix& G, const Matrix& H, Vec3
   gab(3) = g2*g2;
 
   if (ref)
-    {
+  {
     // Contravariant metric gab_con and base vectors g_con
     double invdetgab =  1.0/(gab(1)*gab(3)-gab(2)*gab(2));
     double gab_con11 =  invdetgab*gab(3);
