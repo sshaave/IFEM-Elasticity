@@ -200,6 +200,7 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
       dE_cu(2,i) = fe.dNdX(k,2)*g2(dir);
       dE_cu(3,i) = 0.5*(fe.dNdX(k,1)*g2(dir) + fe.dNdX(k,2)*g1(dir));
 
+      dg1 = dg1*0; dg2 = dg2*0;
       dg1(dir) = fe.dNdX(k,1);
       dg2(dir) = fe.dNdX(k,2);
 
@@ -210,9 +211,9 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
       g3dg3lg3_3(1,i) = g3dg3(1,i)/(lg3_3);
       Vec3 temp = dg3.getColumn(i)/lg3 - g3*g3dg3lg3_3(1,i);                 //*
       dn(1,i) = temp(1); dn(2,i) = temp(2); dn(3,i) = temp(3);               //*
-      dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + fe.H.getColumn(1)*dn.getColumn(i));
-      dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + fe.H.getColumn(2)*dn.getColumn(i));
-      dK_cu(3,i) = -(fe.d2NdX2(k,1,2)*n(dir) + fe.H.getColumn(3)*dn.getColumn(i));
+      dK_cu(1,i) = -(fe.d2NdX2(k,1,1)*n(dir) + Hn.getColumn(1)*dn.getColumn(i)); // changed fe.H to Hn (actualt config)
+      dK_cu(2,i) = -(fe.d2NdX2(k,2,2)*n(dir) + Hn.getColumn(2)*dn.getColumn(i));
+      dK_cu(3,i) = -(fe.d2NdX2(k,1,2)*n(dir) + Hn.getColumn(3)*dn.getColumn(i));
 
     } // for int i = 0; i <= ndof; i++
 
@@ -258,11 +259,11 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
             ddn = ddg3/lg3 - dg3.getColumn(r)*g3dg3lg3_3(1,s)
                 - g3dg3lg3_3(1,r)*dg3.getColumn(s) + C*g3 + D*g3;
             ddK_cu(1) = -(fe.d2NdX2(kr,1,1)*dn(dirr,s) + fe.d2NdX2(ks,1,1)*
-                dn(dirs,r) + fe.H(1,1)*ddn(1) + fe.H(2,1)*ddn(2) + fe.H(3,1)*ddn(3));
+                dn(dirs,r) + Hn(1,1)*ddn(1) + Hn(2,1)*ddn(2) + Hn(3,1)*ddn(3)); // changed fe.H to Hn
             ddK_cu(2) = -(fe.d2NdX2(kr,2,2)*dn(dirr,s) + fe.d2NdX2(ks,2,2)*
-                dn(dirs,r) + fe.H(1,2)*ddn(1) + fe.H(2,2)*ddn(2) + fe.H(3,2)*ddn(3));
+                dn(dirs,r) + Hn(1,2)*ddn(1) + Hn(2,2)*ddn(2) + Hn(3,2)*ddn(3));
             ddK_cu(3) = -(fe.d2NdX2(kr,1,2)*dn(dirr,s) + fe.d2NdX2(ks,1,2)*
-                dn(dirs,r) + fe.H(1,3)*ddn(1) + fe.H(2,3)*ddn(2) + fe.H(3,3)*ddn(3));
+                dn(dirs,r) + Hn(1,3)*ddn(1) + Hn(2,3)*ddn(2) + Hn(3,3)*ddn(3));
             ddK_ca(1,r,s) = T.getRow(1)*ddK_cu;
             ddK_ca(2,r,s) = T.getRow(2)*ddK_cu;
             ddK_ca(3,r,s) = T.getRow(3)*ddK_cu;
