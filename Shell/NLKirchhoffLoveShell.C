@@ -165,7 +165,6 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
 
   double lg3_3 = lg3*lg3*lg3;
   double lg3_5 = lg3_3*lg3*lg3;
-
   // Strain vector referred to curvilinear coor sys
   Vec3 E_cu = 0.5*(gab-Gab);
   // Strain vector referred to cartesian coor sys  -
@@ -184,8 +183,6 @@ bool NLKirchhoffLoveShell::formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D d
   K_ca(1) = K_ca_m(1,1); K_ca(2) = K_ca_m(2,1); K_ca(3) = K_ca_m(3,1);  //*
   // Strain
   int ndof = fe.N.size()*3;
-  // Matrix dE_ca(3,ndof); // dE_ca = epsilon cartesian coordinates
-  // Matrix dK_ca(3,ndof); // dK_ca = kappa cartesian coordinates
   Matrix dE_cu(3,ndof); // dE_cu = epsilon curvelinear coordinate system
   Matrix dK_cu(3,ndof); // dK_cu = kappa curvelinear
 

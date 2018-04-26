@@ -7,8 +7,8 @@
 
   <!-- General - geometry definitions !-->
   <geometry dim="2" Lx="2.0" Ly="1.0">
-    <raiseorder patch="1" u="2" v="1"/>
-    <refine patch="1" u="13" v="0"/>
+    <raiseorder patch="1" u="1" v="0"/>
+    <refine patch="1" u="0" v="0"/>
     <topologysets>
       <set name="boundary" type="edge">
         <item patch="1">1</item>
