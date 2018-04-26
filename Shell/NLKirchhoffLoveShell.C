@@ -124,9 +124,12 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
 
       kem.add(KEM);
       keb.add(KEB);
-      EK = kem + keb;
-      EK.multiply(fe.detJxW);
-      ES = (FIEM + FIEB)*fe.detJxW;
+
+      kem.multiply(fe.detJxW);
+      keb.multiply(fe.detJxW);
+
+      EK.add(kem).add(keb);
+      ES.add(FIEM + FIEB,fe.detJxW);
 
       return true;
 }
@@ -287,15 +290,15 @@ bool NLKirchhoffLoveShell::getAllMetrics (const Matrix& G, const Matrix& H, Vec3
 
   // Covariant metric gab
   gab(1) = g1*g1;
-  gab(2) = g1*g2;
-  gab(3) = g2*g2;
+  gab(3) = g1*g2;
+  gab(2) = g2*g2;
 
   if (ref)
   {
     // Contravariant metric gab_con and base vectors g_con
-    double invdetgab =  1.0/(gab(1)*gab(3)-gab(2)*gab(2));
-    double gab_con11 =  invdetgab*gab(3);
-    double gab_con12 = -invdetgab*gab(2);
+    double invdetgab =  1.0/(gab(1)*gab(2)-gab(3)*gab(3));
+    double gab_con11 =  invdetgab*gab(2);
+    double gab_con12 = -invdetgab*gab(3);
     double gab_con22 =  invdetgab*gab(1);
     Vec3 g1_con = g1*gab_con11 + g2*gab_con12;
     Vec3 g2_con = g1*gab_con12 + g2*gab_con22;
