@@ -42,8 +42,6 @@ protected:
     ScalarFunc* p;     //!< Load magnitude
     //! \brief Default constructor.
     PointLoad() : patch(0), ldof(Ipair(0,1)), p(nullptr) { xi[0]=xi[1] = 0.0; }
-    //! \brief The destructor deletes the load function.
-    ~PointLoad() { delete p; }
   };
 
   typedef std::vector<PointLoad> PloadVec; //!< Point load container
@@ -51,7 +49,7 @@ protected:
 public:
   //! \brief Default constructor.
   explicit SIMKLShell(bool shell = true);
-  //! \brief Destructor.
+  //! \brief The destructor deletes the nodal point load functions.
   virtual ~SIMKLShell();
 
   //! \brief Returns that no analytical solution is available.

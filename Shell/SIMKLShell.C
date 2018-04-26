@@ -34,6 +34,9 @@ SIMKLShell::SIMKLShell (bool shell)
 
 SIMKLShell::~SIMKLShell ()
 {
+  for (PointLoad& load : myLoads)
+    delete load.p;
+
   // To prevent the SIMbase destructor try to delete already deleted functions
   for (int i = 0; i < 3; i++)
     if (aCode[i] > 0) myScalars.erase(aCode[i]);
@@ -186,7 +189,8 @@ bool SIMKLShell::parse (const TiXmlElement* elem)
 
     else if (!strcasecmp(child->Value(),"pointload"))
     {
-      PointLoad load;
+      myLoads.resize(myLoads.size()+1);
+      PointLoad& load = myLoads.back();
       std::string type("constant");
       utl::getAttribute(child,"patch",load.patch);
       utl::getAttribute(child,"xi",load.xi[0]);
@@ -202,16 +206,15 @@ bool SIMKLShell::parse (const TiXmlElement* elem)
           utl::getAttribute(child,"direction",load.ldof.second);
           IFEM::cout <<" direction = "<< load.ldof.second;
         }
-        myLoads.push_back(load);
         if (type == "constant")
         {
-          myLoads.back().p = new ConstantFunc(atof(cload));
-          IFEM::cout <<" load = "<< (*myLoads.back().p)(0.0) << std::endl;
+          load.p = new ConstantFunc(atof(cload));
+          IFEM::cout <<" load = "<< (*load.p)(0.0) << std::endl;
         }
         else
         {
           IFEM::cout <<" Load: ";
-          myLoads.back().p = utl::parseTimeFunc(cload,type);
+          load.p = utl::parseTimeFunc(cload,type);
         }
       }
     }
