@@ -233,6 +233,8 @@ bool SIMKLShell::parse (const TiXmlElement* elem)
         if (!type.empty()) IFEM::cout <<" ("<< type <<")";
         myScalars[code] = utl::parseRealFunc(child->FirstChild()->Value(),type);
         this->setPropertyType(code,Property::BODYLOAD);
+        if (!klp->haveLoads('I'))
+          klp->setPressure(myScalars[code]);
         IFEM::cout << std::endl;
       }
     }

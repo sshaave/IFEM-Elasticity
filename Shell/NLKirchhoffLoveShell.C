@@ -65,7 +65,12 @@ bool NLKirchhoffLoveShell::evalInt (LocalIntegral& elmInt,
   }
 
   if (eS) // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(elMat.b[eS-1],fe.N,fe.iGP,X,fe.detJxW);
+  {
+    Vec3 n;
+    if (presFld)
+      n = this->getShellNormal(Gd.empty() ? fe.G : Gd);
+    this->formBodyForce(elMat.b[eS-1],fe.N,fe.iGP,X,n,fe.detJxW);
+  }
 
   return true;
 }
