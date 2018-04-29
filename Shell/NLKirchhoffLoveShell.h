@@ -61,8 +61,8 @@ private:
                  const Matrix& H0, const Matrix& Hn, const Vec3& X) const;
 
   //! \brief Calculates the strain-displacement matrices at current point.
-  bool formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D ddE_ca,
-                    Matrix3D ddK_ca,Vec3& E_ca,const Matrix& G0, const Matrix& Gn,
+  bool formBmatrix (Matrix& dE_ca, Matrix& dK_ca, Matrix3D& ddE_ca,
+                    Matrix3D& ddK_ca,Vec3& E_ca,const Matrix& G0, const Matrix& Gn,
                     const Matrix& H0, const Matrix& Hn, Vec3& K_ca,const FiniteElement& fe) const;
 
   //! \brief Calculates all matrics, for both the reference and actual configuration
