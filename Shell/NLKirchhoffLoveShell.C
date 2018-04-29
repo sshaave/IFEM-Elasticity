@@ -105,13 +105,13 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
 
       for (int r = 1; r <= ndof; r++)
       {
-          for (int s = 1; s <= ndof; s++)
+          for (int s = 1; s <= r; s++)
           {
               kem(r,s) = N_ca.getColumn(1)*ddE_ca.getColumn(r,s);
+              kem(s,r) = kem(r,s);
               keb(r,s) = M_ca.getColumn(1)*ddK_ca.getColumn(r,s);
+              keb(s,r) = keb(r,s);
           }
-          fiem(r,1) = - (N_ca.getColumn(1)*dE_ca.getColumn(r)); // kan sannsynligvis fjerne disse
-          fieb(r,1) = - (M_ca.getColumn(1)*dK_ca.getColumn(r)); //
       }
       Matrix KEM(ndof,ndof); Matrix KEB(ndof,ndof);
 
@@ -124,12 +124,13 @@ bool NLKirchhoffLoveShell::evalKandS (Matrix& EK, Vector& ES,
 
       kem.add(KEM);
       keb.add(KEB);
-
+      Matrix temp3(ndof,ndof);
+      temp3.add(kem).add(keb);
       kem.multiply(fe.detJxW);
       keb.multiply(fe.detJxW);
 
       EK.add(kem).add(keb);
-      ES.add(FIEM + FIEB,fe.detJxW);
+      ES.add(FIEM + FIEB,-fe.detJxW);
 
       return true;
 }
