@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Scordelis-Lo, 1/4 of the roof, subjected to gravity load.
+     Quartic spline Kirchhoff-Love thin shell elements. !-->
+
+<simulation>
+
+  <!-- General - gemoetry definitions !-->
+  <geometry>
+    <patchfile>HemisphereCut_symm.g2</patchfile>
+    <raiseorder patch="1" u ="2" v="2"/>
+    <refine patch="1" u="3" v="3"/>
+    <topologysets>
+      <set name="symmXZ" type="edge">
+        <item patch="1">3</item>
+      </set>
+      <set name="symmYZ" type="edge">
+        <item patch="1">4</item>
+      </set>
+      <set name="punkt" type="vertex">
+        <item patch="1">1</item>
+      </set>
+   </topologysets>
+  </geometry>
+
+  <!-- General - Gauss quadrature scheme !-->
+  <discretization>
+    <nGauss default="0"/>
+  </discretization>
+
+  <!-- General - boundary conditions !-->
+  <boundaryconditions>
+    <dirichlet set="symmXZ" comp="1000"/>
+    <dirichlet set="symmXZ" comp="2"/>
+    <dirichlet set="symmXZ" comp="3000"/>
+    <dirichlet set="symmYZ" comp="1"/>
+    <dirichlet set="symmYZ" comp="2000"/>
+    <dirichlet set="symmYZ" comp="3000"/> 
+    <dirichlet set="punkt" comp="3"/>
+  </boundaryconditions>
+
+  <!-- Problem specific block !-->
+  <KirchhoffLove>
+    <isotropic E="6.825e7" nu="0.3" rho="100" thickness="0.04"/>
+    <pointload patch="1" xi="0.0" eta="0.0" direction="1">1</pointload>
+    <pointload patch="1" xi="0.0" eta="1.0" direction="2">-1</pointload>
+  </KirchhoffLove>
+
+  <!-- General - point result output !-->
+  <postprocessing>
+    <resultpoints>
+      <point patch="1" u="1.0" v="1.0"/>
+    </resultpoints>
+  </postprocessing>
+
+</simulation>

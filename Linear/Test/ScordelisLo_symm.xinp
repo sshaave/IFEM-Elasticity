@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
-<!-- Scordelis-Lo roof subjected to gravity load, 1/4 model.
-     2x2 quartic spline Kirchhoff-Love thin shell elements. !-->
+<!-- Scordelis-Lo roof (1/4), subjected to gravity load.
+	 Quadratic spline Kirchhoff-Love thin shell elements. !-->
 
 <simulation>
 
-  <!-- General - geometry definitions !-->
+  <!-- General - gemoetry definitions !-->
   <geometry>
-    <patchfile>ScordelisLo-symm.g2</patchfile>
-    <raiseorder patch="1" u="2" v="3"/>
-    <refine patch="1" u="1" v="1"/>
+    <patchfile>ScordelisLo_symm.g2</patchfile>
+    <raiseorder patch="1" u ="2" v="3"/>
+    <refine patch="1" u="3" v="3"/>
     <topologysets>
-      <set name="end" type="edge">
-        <item patch="1">3</item>
-      </set>
       <set name="symmZY" type="edge">
         <item patch="1">1</item>
       </set>
       <set name="symmXZ" type="edge">
         <item patch="1">4</item>
+      </set>
+      <set name="fixedend" type="edge">
+        <item patch="1">3</item>
       </set>
     </topologysets>
   </geometry>
@@ -30,11 +30,13 @@
 
   <!-- General - boundary conditions !-->
   <boundaryconditions>
-    <dirichlet set="end" comp="13"/>
+    <dirichlet set="fixedend" comp="13"/>
     <dirichlet set="symmZY" comp="1"/>
-    <dirichlet set="symmZY" comp="23000"/>
-    <dirichlet set="symmXZ" comp="13000"/>
+    <dirichlet set="symmZY" comp="2000"/>
+    <dirichlet set="symmZY" comp="3000"/>
+    <dirichlet set="symmXZ" comp="1000"/>
     <dirichlet set="symmXZ" comp="2"/>
+    <dirichlet set="symmXZ" comp="3000"/>
   </boundaryconditions>
 
   <!-- Problem specific block !-->

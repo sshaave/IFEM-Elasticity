@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 <!-- Scordelis-Lo roof subjected to gravity load.
-     4x4 quartic spline Kirchhoff-Love thin shell elements. !-->
+     Quartic spline Kirchhoff-Love thin shell elements. !-->
 
 <simulation>
 

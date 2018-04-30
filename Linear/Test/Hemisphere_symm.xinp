@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
-<!-- Hemispherical shell, 1/8 of a hemisphere.
+<!-- Hemispherical shell (1/4), subjected to point load.
      Quartic spline Kirchhoff-Love thin shell elements. !-->
 
 <simulation>
 
   <!-- General - geometry definitions !-->
   <geometry>
-    <patchfile>firstHemisquarter.g2</patchfile>
-    <raiseorder patch="1" u="2" v="2"/>
-    <refine patch="1" u="3" v="3"/>
+  <patchfile>Hemisphere_symm.g2</patchfile>
+  <raiseorder patch="1" u="2" v="2"/>
+  <refine patch="1" u="3" v="3"/>
     <topologysets>
       <set name="fixed" type="edge">
         <item patch="1">1</item>
@@ -17,7 +17,7 @@
       <set name="symmXZ" type="edge">
         <item patch="1">3</item>
       </set>
-      <set name="symmXY" type="edge">
+      <set name="symmYZ" type="edge">
         <item patch="1">4</item>
       </set>
     </topologysets>
@@ -25,7 +25,7 @@
 
   <!-- General - Gauss quadrature scheme !-->
   <discretization>
-    <nGauss>4</nGauss>
+    <nGauss default="0"/>
   </discretization>
 
   <!-- General - boundary conditions !-->
@@ -34,15 +34,15 @@
     <dirichlet set="symmXZ" comp="1000"/>
     <dirichlet set="symmXZ" comp="2"/>
     <dirichlet set="symmXZ" comp="3000"/>
-    <dirichlet set="symmXY" comp="1000"/>
-    <dirichlet set="symmXY" comp="2000"/>
-    <dirichlet set="symmXY" comp="3"/>
+    <dirichlet set="symmYZ" comp="1"/>
+    <dirichlet set="symmYZ" comp="2000"/>
+    <dirichlet set="symmYZ" comp="3000"/>
   </boundaryconditions>
 
   <!-- Problem specific block !-->
   <KirchhoffLove>
     <isotropic E="6.825e7" nu="0.3" rho="0.0" thickness="0.04"/>
-    <pointload patch="1" xi="1.0" eta="0.0" direction="3">1.0</pointload>
+    <pointload patch="1" xi="1.0" eta="0.0" direction="1">1.0</pointload>
     <pointload patch="1" xi="1.0" eta="1.0" direction="2">-1.0</pointload>
   </KirchhoffLove>
 
