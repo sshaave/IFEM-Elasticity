@@ -3,7 +3,7 @@
 //!
 //! \file main.C
 //!
-//! \date Jan 21 2018
+//! \date Apr 21 2018
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
@@ -51,7 +51,7 @@ int main (int argc, char** argv)
   Profiler prof(argv[0]);
   utl::profiler->start("Initialization");
 
-  int outPrec = 0;
+  int outPrec = 3;
   double zero_tol = 1.0e-8;
   double stopTime = 0.0;
   char* infile = nullptr;
@@ -85,7 +85,7 @@ int main (int argc, char** argv)
   IFEM::getOptions().discretization = ASM::SplineC1;
   IFEM::cout <<"\nInput file: "<< infile;
   IFEM::getOptions().print(IFEM::cout);
-  if (outPrec != 0)
+  if (outPrec > 3)
     IFEM::cout <<"\nNorm- and component output precision: "<< outPrec;
   if (zero_tol != 1.0e-8)
     IFEM::cout <<"\nNorm output zero tolerance: "<< zero_tol;
@@ -120,7 +120,7 @@ int main (int argc, char** argv)
   if (model.opt.format >= 0)
   {
     // Save FE model to VTF file for visualization
-    model.opt.nViz[1] = model.opt.nViz[2] = 1;
+    model.opt.nViz[2] = 1;
     if (!simulator.saveModel(infile))
       return 3;
   }
