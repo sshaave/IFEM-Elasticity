@@ -5,7 +5,7 @@
 //!
 //! \date Feb 25 2018
 //!
-//! \author ... and ... / NTNU
+//! \author Simen Skogholt Haave and Marit Gaarder Rakvåg / NTNU
 //!
 //! \brief Class for linear Kirchhoff-Love thin shell problems.
 //!
