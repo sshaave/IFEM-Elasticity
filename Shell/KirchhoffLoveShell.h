@@ -90,6 +90,10 @@ public:
                    const FiniteElement& fe, const Vec3& X,
                    bool invers = false) const;
 
+  //! \brief Returns the Shell unit normal vector at current point.
+  //! \param[in] G Gradient of the cartesian coordinates at current point
+  Vec3 getShellNormal(const Matrix& G) const;
+
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   //! \note The Integrand object is allocated dynamically and has to be deleted
   //! manually when leaving the scope of the pointer variable receiving the
