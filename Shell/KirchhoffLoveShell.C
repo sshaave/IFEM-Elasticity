@@ -234,7 +234,7 @@ bool KirchhoffLoveShell::evalBou (LocalIntegral& elmInt,
 }
 
 
-bool KirchhoffLoveShell::evalSol (Vector& s, const Vector& eV,
+bool KirchhoffLoveShell::evalSol (Vector& s, const Vectors& eV,
                                   const FiniteElement& fe, const Vec3& X,
                                   bool toLocal) const
 {
@@ -265,20 +265,20 @@ bool KirchhoffLoveShell::evalSol (Vector& s, const Vector& eV,
 }
 
 
-bool KirchhoffLoveShell::evalSol (Vector& sm, Vector& sb, const Vector& eV,
+bool KirchhoffLoveShell::evalSol (Vector& sm, Vector& sb, const Vectors& eV,
                                   const FiniteElement& fe, const Vec3& X,
                                   bool toLocal) const
 {
-  if (eV.empty())
+  if (eV.empty() || eV.front().empty())
   {
     std::cerr <<" *** KirchhoffLoveShell::evalSol: No displacement vector."
               << std::endl;
     return false;
   }
-  else if (eV.size() != 3*fe.d2NdX2.dim(1))
+  else if (eV.front().size() != 3*fe.d2NdX2.dim(1))
   {
     std::cerr <<" *** KirchhoffLoveShell::evalSol: Invalid displacement vector."
-              <<"\n     size(eV) = "<< eV.size() <<"   size(d2NdX2) = "
+              <<"\n     size(eV) = "<< eV.front().size() <<"   size(d2NdX2) = "
               << fe.d2NdX2.dim(1) <<","<< fe.d2NdX2.dim(2)*fe.d2NdX2.dim(3)
               << std::endl;
     return false;
@@ -296,9 +296,9 @@ bool KirchhoffLoveShell::evalSol (Vector& sm, Vector& sb, const Vector& eV,
 
   // Evaluate the membran strain and curvature tensors
   SymmTensor epsilon(2), kappa(2);
-  if (!Bm.multiply(eV,epsilon)) // epsilon = B*eV
+  if (!Bm.multiply(eV.front(),epsilon)) // epsilon = B*eV
     return false;
-  if (!Bb.multiply(eV,kappa)) // kappa = B*eV
+  if (!Bb.multiply(eV.front(),kappa)) // kappa = B*eV
     return false;
 
   // Evaluate the stress resultant tensors
@@ -411,7 +411,7 @@ bool KirchhoffLoveShellNorm::evalInt (LocalIntegral& elmInt,
 
   // Evaluate the finite element stress field
   Vector mh, nh, errm, errn;
-  if (!problem.evalSol(nh,mh,pnorm.vec.front(),fe,X))
+  if (!problem.evalSol(nh,mh,pnorm.vec,fe,X))
     return false;
 
   // Evaluate the pressure load and displacement field

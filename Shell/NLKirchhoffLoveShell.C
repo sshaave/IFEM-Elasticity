@@ -334,4 +334,40 @@ bool NLKirchhoffLoveShell::getAllMetrics (const Matrix& G, const Matrix& H, Vec3
 }
 
 
+bool NLKirchhoffLoveShell::evalSol (Vector& sm, Vector& sb, const Vectors& eV,
+                                    const FiniteElement& fe, const Vec3& X,
+                                    bool) const
+{
+  if (eV.size() < 2 || eV.front().empty() || eV.back().empty())
+  {
+    std::cerr <<" *** NLKirchhoffLoveShell::evalSol: No displacement vectors."
+              << std::endl;
+    return false;
+  }
+  else if (eV.front().size() != 3*fe.d2NdX2.dim(1))
+  {
+    std::cerr <<" *** NLKirchhoffLoveShell::evalSol: Invalid solution vector."
+              <<"\n     size(eV) = "<< eV.front().size() <<"   size(d2NdX2) = "
+              << fe.d2NdX2.dim(1) <<","<< fe.d2NdX2.dim(2)*fe.d2NdX2.dim(3)
+              << std::endl;
+    return false;
+  }
 
+  // Co-variant basis and Hessian in deformed configuration
+  Matrix Gd, Hd;
+  Matrix3D Hess;
+  Gd.multiplyMat(eV.back(),fe.dNdX);
+  if (Hess.multiplyMat(eV.back(),fe.d2NdX2))
+    utl::Hessian(Hess,Hd);
+  else
+    return false;
+
+  Matrix Dm, Db;
+  if (!this->formDmatrix(Dm,Db,fe,X))
+    return false;
+
+  //TODO: Add calculation of nonlinear strains and stress resultants here,
+  // based on fe.G, fe.H, Gd, Hd, and two calls to getAllMetrics()
+  // like you do in evalInt and evalKandS.
+  return true;
+}
