@@ -365,9 +365,65 @@ bool NLKirchhoffLoveShell::evalSol (Vector& sm, Vector& sb, const Vectors& eV,
   Matrix Dm, Db;
   if (!this->formDmatrix(Dm,Db,fe,X))
     return false;
-
+  Matrix H0 = fe.H;
+  Matrix G0 = fe.G;
   //TODO: Add calculation of nonlinear strains and stress resultants here,
   // based on fe.G, fe.H, Gd, Hd, and two calls to getAllMetrics()
   // like you do in evalInt and evalKandS.
+  // Declaring all variables
+  Vec3 g1, g2, g3; double lg3;
+  Vec3 n, gab, Gab, bv, Bv;
+  Matrix T(3,3);
+  if (!this->getAllMetrics(G0,H0,g3,lg3,n,Gab,Bv,T,true))
+    return false;
+
+  if (Gd.empty())
+  {
+    // Initial configuration, no deformation yet
+    g1 = G0.getColumn(1);
+    g2 = G0.getColumn(2);
+    gab = Gab;
+    bv = Bv;
+  }
+  else
+  {
+    // Deformed configuration
+    g1 = Gd.getColumn(1);
+    g2 = Gd.getColumn(2);
+    if (!this->getAllMetrics(Gd,Hd,g3,lg3,n,gab,bv,T,false))
+      return false;
+  }
+
+  //const Matrix& Hc = Hn.empty() ? H0 : Hn;
+
+  //double lg3_3 = lg3*lg3*lg3;
+  //double lg3_5 = lg3_3*lg3*lg3;
+  // Strain vector referred to curvilinear coor sys
+  Vec3 E_cu = 0.5*(gab-Gab);
+  // Strain vector referred to cartesian coor sys  -
+  Matrix E_cu_m(3,1);
+  E_cu_m(1,1) = E_cu(1); E_cu_m(2,1) = E_cu(2); E_cu_m(3,1) = E_cu(3);  //*
+  Matrix E_ca_m(3,1);                                                        //*
+  E_ca_m.multiply(T,E_cu_m);                                            //*
+  //E_ca(1) = E_ca_m(1,1); E_ca(2) = E_ca_m(2,1); E_ca(3) = E_ca_m(3,1);
+  // Curvature vector [K11,K22,K12] referred to curvilinear coor sys
+  Vec3 K_cu = (Bv -bv);
+  // Curvature vector referred to cart coor sys   -
+  Matrix K_cu_m(3,1);
+  K_cu_m(1,1) = K_cu(1); K_cu_m(2,1) = K_cu(2); K_cu_m(3,1) = K_cu(3);  //*
+  Matrix K_ca_m(3,1);                                                        //*
+  K_ca_m.multiply(T,K_cu_m);                                            //*
+  //K_ca(1) = K_ca_m(1,1); K_ca(2) = K_ca_m(2,1); K_ca(3) = K_ca_m(3,1);  //*
+  Matrix smm(3,1); Matrix sbb(3,1);
+  smm.multiply(Dm,E_ca_m);
+  sbb.multiply(Db,K_ca_m);
+  sm(1) = smm(1,1); sm(2) = smm(2,1); sm(3) = smm(3,1);
+  sb(1) = sbb(1,1); sb(2) = sbb(2,1); sb(3) = sbb(3,1);
+
+
+
+
+
+
   return true;
 }
