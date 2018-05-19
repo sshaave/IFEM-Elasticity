@@ -417,6 +417,8 @@ bool NLKirchhoffLoveShell::evalSol (Vector& sm, Vector& sb, const Vectors& eV,
   Matrix smm(3,1); Matrix sbb(3,1);
   smm.multiply(Dm,E_ca_m);
   sbb.multiply(Db,K_ca_m);
+  sm.resize(3);
+  sb.resize(3);
   sm(1) = smm(1,1); sm(2) = smm(2,1); sm(3) = smm(3,1);
   sb(1) = sbb(1,1); sb(2) = sbb(2,1); sb(3) = sbb(3,1);
 

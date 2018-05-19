@@ -54,11 +54,14 @@
 
 	<!-- General - point result output !-->
 	<postprocessing>
+<direct2nd/>
+<vtfformat>BINARY</vtfformat>
 		<resultpoints>
 		<point patch="1" u="1.0" v="1.0"/>
 	</resultpoints>
 	</postprocessing>
 	<nonlinearsolver>
+<noEnergy/>
         <maxits>30</maxits>
     	<dtol>1.0e8</dtol>
   	</nonlinearsolver>
