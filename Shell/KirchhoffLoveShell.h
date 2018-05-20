@@ -147,9 +147,6 @@ public:
   virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const;
 
-  //! \brief Defines which FE quantities are needed by the integrand.
-  virtual int getIntegrandType() const;
-
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return true; }
 
