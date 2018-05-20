@@ -498,12 +498,6 @@ bool KirchhoffLoveShellNorm::evalBou (LocalIntegral& elmInt,
 }
 
 
-int KirchhoffLoveShellNorm::getIntegrandType () const
-{
-  return SECOND_DERIVATIVES;
-}
-
-
 size_t KirchhoffLoveShellNorm::getNoFields (int group) const
 {
   if (group == 0)

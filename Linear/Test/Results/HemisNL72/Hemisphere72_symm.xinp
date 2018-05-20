@@ -61,7 +61,6 @@
 	</resultpoints>
 	</postprocessing>
 	<nonlinearsolver>
-<noEnergy/>
         <maxits>30</maxits>
     	<dtol>1.0e8</dtol>
   	</nonlinearsolver>
